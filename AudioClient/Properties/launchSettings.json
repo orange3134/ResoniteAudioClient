@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Launch": {
+      "commandName": "Executable",
+      "executablePath": "$(GamePath)Renderite.Host.exe",
+      "commandLineArgs": "-Screen $(ResoniteLaunchArguments)",
+      "workingDirectory": "$(GamePath)"
+    }
+  }
+}
