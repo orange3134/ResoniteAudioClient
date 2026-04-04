@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <Version>1.0.0</Version>
     <Authors>orange</Authors>
     <TargetFramework>net10.0</TargetFramework>
@@ -12,53 +13,39 @@
     <Nullable>enable</Nullable>
     <Deterministic>true</Deterministic>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <CopyToPlugins>true</CopyToPlugins>
-    <ThunderstorePackable>true</ThunderstorePackable>
-    <GamePath Condition="'$(ResonitePath)' != ''">$(ResonitePath)/</GamePath>
-    <GamePath Condition="Exists('$(MSBuildProgramFiles32)\Steam\steamapps\common\Resonite\')">$(MSBuildProgramFiles32)\Steam\steamapps\common\Resonite\</GamePath>
-    <GamePath Condition="Exists('$(HOME)/.steam/steam/steamapps/common/Resonite/')">$(HOME)/.steam/steam/steamapps/common/Resonite/</GamePath>
-    <PluginTargetDir>$(GamePath)BepInEx\plugins\$(AssemblyName)</PluginTargetDir>
-    <RestoreAdditionalProjectSources>
-      https://nuget-modding.resonite.net/v3/index.json;
-    </RestoreAdditionalProjectSources>
+    <CopyToGameFolder>true</CopyToGameFolder>
+    
+    <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
+    <AppTargetDir>$(GamePath)</AppTargetDir>
   </PropertyGroup>
 
-  <!-- Modding dependencies -->
-  <ItemGroup>
-    <PackageReference Include="BepInEx.ResonitePluginInfoProps" Version="3.*" />
-    <PackageReference Include="ResoniteModding.BepInExResoniteShim" Version="0.9.*" />
-    <PackageReference Include="ResoniteModding.BepisResoniteWrapper" Version="1.*" />
-  </ItemGroup>
-
-  <!-- NuGet fallback stripped game references -->
+  <!-- NuGet fallback stripped game references (optional, if local not found) -->
   <ItemGroup Condition="!Exists('$(GamePath)')">
-    <PackageReference Include="Resonite.GameLibs" Version="2025.*" PrivateAssets="all" />
+    <PackageReference Include="Resonite.GameLibs" Version="2025.*" />
   </ItemGroup>
 
   <!-- Local game references -->
   <ItemGroup Condition="Exists('$(GamePath)')">
     <Reference Include="FrooxEngine">
       <HintPath>$(GamePath)FrooxEngine.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="Elements.Core">
       <HintPath>$(GamePath)Elements.Core.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="Renderite.Shared">
       <HintPath>$(GamePath)Renderite.Shared.dll</HintPath>
-      <Private>False</Private>
     </Reference>
   </ItemGroup>
 
-  <!-- Post-build copy to game plugins folder -->
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <!-- Post-build copy to game folder -->
+  <Target Name="CopyAppToGame" AfterTargets="Build">
     <ItemGroup>
-      <PluginFiles Include="$(TargetPath)" />
-      <PluginFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+      <!-- Copy everything produced in the output directory (like .runtimeconfig.json, .exe, etc.) -->
+      <AppFiles Include="$(TargetDir)*" Exclude="$(TargetDir)*.pdb" />
+      <AppFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
     </ItemGroup>
     
-    <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginTargetDir)" Condition="'$(CopyToPlugins)' == 'true'" />
-    <Message Text="Copied plugin files to $(PluginTargetDir)" Importance="high" Condition="'$(CopyToPlugins)' == 'true'" />
+    <Copy SourceFiles="@(AppFiles)" DestinationFolder="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
+    <Message Text="Copied application files to $(AppTargetDir)" Importance="high" Condition="'$(CopyToGameFolder)' == 'true'" />
   </Target>
 </Project>
