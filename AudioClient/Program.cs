@@ -1,17 +1,16 @@
 using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Elements.Core;
-using FrooxEngine;
-using Renderite.Shared;
 
 namespace AudioClient;
 
 public class Program
 {
     private static bool _shutdownRequested = false;
-    private static Engine? _engine;
+    private static object? _engine; // typed as object to avoid early FrooxEngine resolution
     
     public static async Task Main(string[] args)
     {
@@ -25,10 +24,19 @@ public class Program
             Environment.SetEnvironmentVariable("PATH", runtimesPath + Path.PathSeparator + currentPath);
         }
 
-        InitializeLogging();
+        // Register assembly resolver BEFORE any FrooxEngine types are touched.
+        // This allows loading FrooxEngine.dll etc. regardless of version mismatch.
+        AppDomain.CurrentDomain.AssemblyResolve += (sender, resolveArgs) =>
+        {
+            var assemblyName = new AssemblyName(resolveArgs.Name);
+            string path = Path.Combine(appDir, assemblyName.Name + ".dll");
+            if (File.Exists(path))
+            {
+                return Assembly.LoadFrom(path);
+            }
+            return null;
+        };
 
-        UniLog.Log("Starting Headless AudioClient...");
-        
         // Force-load all managed assemblies in the directory into the AppDomain 
         // This simulates Unity/Mono's behavior of having all assemblies available in the domain.
         // It's required so FrooxEngine's type scanner registers ALL valid Data Model Assemblies (like Awwdio, PhotonDust, etc).
@@ -36,20 +44,34 @@ public class Program
         {
             try
             {
-                System.Reflection.Assembly.LoadFrom(file);
+                Assembly.LoadFrom(file);
             }
             catch (BadImageFormatException)
             {
                 // Ignore native DLLs like opus.dll, LibFreeImage.so, etc.
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                UniLog.Warning($"Non-critical failure loading {Path.GetFileName(file)}: {ex.Message}");
+                // Non-critical, skip silently
             }
         }
 
-        LaunchOptions options = LaunchOptions.GetLaunchOptions(args);
-        options.OutputDevice = HeadOutputDevice.Screen;
+        // Now it's safe to call into FrooxEngine code
+        await RunEngine(args, appDir);
+    }
+
+    // NoInlining ensures the JIT won't try to resolve FrooxEngine types
+    // until this method is actually called (after our AssemblyResolve handler is registered)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task RunEngine(string[] args, string appDir)
+    {
+        
+        InitializeLogging();
+
+        Elements.Core.UniLog.Log("Starting Headless AudioClient...");
+
+        var options = FrooxEngine.LaunchOptions.GetLaunchOptions(args);
+        options.OutputDevice = Renderite.Shared.HeadOutputDevice.Screen;
         
         // Use Resonite default directories so it behaves perfectly but inside a console.
         options.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "..", "LocalLow", "Yellow Dog Man Studios", "Resonite");
@@ -58,15 +80,16 @@ public class Program
         // Locale defaults to the Locale folder in the game directory
         options.LocaleDirectory = Path.Combine(appDir, "Locale");
 
-        _engine = new Engine();
+        var engine = new FrooxEngine.Engine();
+        _engine = engine;
         var systemInfo = new DummySystemInfo();
         var initProgress = new ConsoleInitProgress();
 
         // 1. Initialize Engine (Wait for completion)
-        await _engine.Initialize(appDir, useRenderer: false, options, systemInfo, initProgress);
+        await engine.Initialize(appDir, useRenderer: false, options, systemInfo, initProgress);
         
         // 2. Setup Userspace
-        Userspace.SetupUserspace(_engine);
+        FrooxEngine.Userspace.SetupUserspace(engine);
         
         // 3. Start Update Loop Thread
         Thread updateThread = new Thread(EngineUpdateLoop)
@@ -90,13 +113,16 @@ public class Program
             string[] parts = input.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             string command = parts[0].ToLowerInvariant();
 
-            InvokeNextUpdate(() => ProcessCommand(command, parts));
+            engine.GlobalCoroutineManager.Post((state) =>
+            {
+                ProcessCommand(engine, command, parts);
+            }, null);
         }
         
         // Shutdown logic
-        Userspace.ExitApp(saveHomes: false);
+        FrooxEngine.Userspace.ExitApp(saveHomes: false);
         updateThread.Join();
-        _engine.Dispose();
+        engine.Dispose();
         Console.WriteLine("Shutdown complete.");
     }
 
@@ -104,20 +130,12 @@ public class Program
     {
         while (!_shutdownRequested)
         {
-            _engine?.RunUpdateLoop();
+            (_engine as FrooxEngine.Engine)?.RunUpdateLoop();
             Thread.Sleep(10); // Sleep briefly to prevent 100% CPU usage
         }
     }
 
-    private static void InvokeNextUpdate(Action action)
-    {
-        _engine?.GlobalCoroutineManager.Post((state) =>
-        {
-            action();
-        }, null);
-    }
-
-    private static void ProcessCommand(string command, string[] args)
+    private static void ProcessCommand(FrooxEngine.Engine engine, string command, string[] args)
     {
         try
         {
@@ -139,9 +157,9 @@ public class Program
                         Console.WriteLine($"Normalized URL: {url}");
                     }
                     
-                    if (Uri.TryCreate(url, UriKind.Absolute, out Uri uri))
+                    if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
                     {
-                        Userspace.JoinSession(uri);
+                        FrooxEngine.Userspace.JoinSession(uri);
                         Console.WriteLine("Session Join requested.");
                     }
                     else
@@ -152,7 +170,6 @@ public class Program
                 
                 case "leave":
                     Console.WriteLine("Not fully implemented yet. Please use exit/restart.");
-                    // Properly finding the world and closing it requires a bit more API exploration.
                     break;
 
                 case "exit":
@@ -175,7 +192,7 @@ public class Program
     {
         string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs");
         Directory.CreateDirectory(logDir);
-        string logname = UniLog.GenerateLogName(Engine.VersionNumber + "AudioClient");
+        string logname = Elements.Core.UniLog.GenerateLogName(FrooxEngine.Engine.VersionNumber + "AudioClient");
         StreamWriter logStream = File.CreateText(Path.Combine(logDir, logname));
         
         object logLock = new object();
@@ -199,8 +216,6 @@ public class Program
             }
             else
             {
-                // To avoid spamming console with every UniLog message, we can just log errors to console
-                // or optionally log everything. Let's log everything for debug purposes.
                 Console.WriteLine(line);
             }
 
@@ -212,12 +227,13 @@ public class Program
             }
         }
 
-        UniLog.OnLog += (msg) => WriteLog("INFO", msg);
-        UniLog.OnWarning += (msg) => WriteLog("WARN", msg);
-        UniLog.OnError += (msg) => WriteLog("ERR", msg);
-        UniLog.OnFlush += () =>
+        Elements.Core.UniLog.OnLog += (msg) => WriteLog("INFO", msg);
+        Elements.Core.UniLog.OnWarning += (msg) => WriteLog("WARN", msg);
+        Elements.Core.UniLog.OnError += (msg) => WriteLog("ERR", msg);
+        Elements.Core.UniLog.OnFlush += () =>
         {
             lock (logLock) logStream.Flush();
         };
     }
 }
+
