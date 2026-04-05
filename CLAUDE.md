@@ -105,3 +105,33 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 *   ロコモーションモジュール等のコンポーネントは、`world.LocalUser.Root.Slot` の下層（`Locomotion Modules`など）に構築されています。
 *   `GetComponentInChildren<T>()` などを使いコンポーネントを探し出します。
 *   モジュール名（表示名）は `ILocomotionModule.LocomotionName` として存在しますが `LocaleString` 構造体（`struct`）であることに注意してください。値型のため `?.` ではなく `.ToString()` のような直接アクセスが必要です。
+
+### セッションへの参加 (`Userspace.JoinSession`)
+*   `Userspace.JoinSession(Uri)` の単一URL版より、`Userspace.JoinSession(IEnumerable<Uri>)` の複数URL版を優先して使う。エンジンが優先度順（LNL → Steam）で試みるため接続成功率が上がります。
+*   `res-steam://` URLはSteam P2Pを使うためヘッドレス環境では動作しません。`SessionInfo.GetSessionURLs()` で全URLを取得し `lnl-nat://` を優先してください。
+*   `SessionInfo.GetSessionURLs()` は `List<Uri>` を返し、無効なURLを自動で除外します。
+
+### セッションの開始 (`Userspace.OpenWorld` / `Userspace.StartSession`)
+*   レコードURLからセッションを開始するには `Userspace.OpenWorld(new WorldStartSettings(uri))` を使います（非同期）。
+*   組み込みテンプレートから開始するには `Userspace.StartSession(preset.Method)` を使います（同期）。利用可能なプリセットは `WorldPresets.Presets` で列挙できます（Grid, Platform, Blank, DebugWorldなど）。
+*   `Userspace.StartSession` の引数に `FrooxEngine.Store.Record` 型が含まれるため、csprojに `FrooxEngine.Store.dll` の参照追加が必要です。
+
+### セッション設定の変更
+*   `world.Name = "新しい名前"` および `world.AccessLevel = SessionAccessLevel.Contacts` のセッターは内部で `RunSynchronously` を呼ぶためスレッドセーフです。外側で改めてラップする必要はありません。
+*   `world.AllowUserToJoin(userId)` はデータモデルの変更なので `world.RunSynchronously()` でラップが必要です。
+
+### コンタクト・招待管理 (`engine.Cloud.Contacts` / `engine.Cloud.Messages`)
+*   **コンタクト一覧**: `engine.Cloud.Contacts.ForeachContactData(Action<ContactData>)` でコンタクトを走査します。
+*   **オンライン状態**: `ContactData.CurrentStatus.OnlineStatus`（`SkyFrost.Base.OnlineStatus` 列挙型: Offline/Invisible/Away/Busy/Online/Sociable）
+*   **コンタクトの現在セッション**: `ContactData.CurrentSessionInfo`（`SessionInfo`）。プライベートセッションや不可視ユーザーは `null` になります。
+*   **`UserSessionMetadata`（`CurrentStatus.Sessions`の要素）にセッション名は含まれません。** プライバシー設計によりアクセスレベル・IsHost・SessionHiddenのみ保持します。
+*   **招待送信**: `engine.Cloud.Messages.GetUserMessages(userId).SendInviteMessage(sessionInfo)` で非同期送信。事前に `world.GenerateSessionInfo()` でセッション情報を生成する必要があります。
+
+### ユーザー位置情報 (`UserRoot`)
+*   `user.Root.HeadPosition` → `float3`（ワールド空間のXYZ座標）
+*   `user.Root.HeadFacingRotation` → `floatQ`（クォータニオン）。`.EulerAngles.y` でY軸回転（度）を取得できます。
+*   `floatQ.EulerAngles` は `float3` を返し、単位は度（ラジアンではない）です。
+
+### 起動オプション (`LaunchOptions`)
+*   `LaunchOptions.GetLaunchOptions(args)` は `-DataPath`/`-Data`、`-CachePath`/`-Cache`、`-LogsPath` など標準的な引数を自動でパースします。
+*   コード側でデフォルト値を設定する場合は、`string.IsNullOrEmpty(options.DataDirectory)` で未指定かどうかを確認してから代入することで、コマンドライン引数を上書きせずに済みます。
