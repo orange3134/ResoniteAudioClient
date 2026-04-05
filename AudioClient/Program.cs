@@ -106,6 +106,9 @@ public class Program
         Console.WriteLine("AudioClient is ready.");
         Console.WriteLine("Commands:");
         Console.WriteLine("  join <session_id/url>            - Join a session");
+        Console.WriteLine("  contactInvite <username>         - Invite a contact to the current session");
+        Console.WriteLine("  contactInfo <username>           - Show contact's online status and sessions");
+        Console.WriteLine("  contactJoin <username>           - Join the session a contact is currently in");
         Console.WriteLine("  startWorldURL <recordURL>        - Start a new session from a record URL");
         Console.WriteLine("  startWorldTemplate <name>        - Start a new session from a built-in template");
         Console.WriteLine("  activeSessions                   - List available sessions to join");
@@ -159,6 +162,33 @@ public class Program
         {
             switch (command)
             {
+                case "contactinvite":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: contactInvite <username>");
+                        break;
+                    }
+                    HandleContactInviteCommand(engine, string.Join(" ", args.Skip(1)));
+                    break;
+
+                case "contactinfo":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: contactInfo <username>");
+                        break;
+                    }
+                    HandleContactInfoCommand(engine, string.Join(" ", args.Skip(1)));
+                    break;
+
+                case "contactjoin":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: contactJoin <username>");
+                        break;
+                    }
+                    HandleContactJoinCommand(engine, string.Join(" ", args.Skip(1)));
+                    break;
+
                 case "startworldurl":
                     if (args.Length < 2)
                     {
@@ -701,6 +731,146 @@ public class Program
 
         engine.WorldManager.FocusWorld(targetWorld);
         Console.WriteLine($"Focused on session '{targetWorld.Name}'.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleContactInviteCommand(FrooxEngine.Engine engine, string username)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null || world == FrooxEngine.Userspace.UserspaceWorld)
+        {
+            Console.WriteLine("No active session focused. Start or join a session first.");
+            return;
+        }
+
+        SkyFrost.Base.ContactData? targetContact = null;
+        engine.Cloud.Contacts.ForeachContactData(cd =>
+        {
+            if (targetContact == null &&
+                cd.Contact.ContactUsername.Equals(username, StringComparison.OrdinalIgnoreCase))
+            {
+                targetContact = cd;
+            }
+        });
+
+        if (targetContact == null)
+        {
+            Console.WriteLine($"Contact '{username}' not found. Make sure you have them as an accepted contact.");
+            return;
+        }
+
+        string userId = targetContact.Contact.ContactUserId;
+        string contactUsername = targetContact.Contact.ContactUsername;
+
+        // AllowUserToJoin はデータモデル変更のため RunSynchronously でラップ
+        world.RunSynchronously(() => world.AllowUserToJoin(userId));
+
+        var sessionInfo = world.GenerateSessionInfo();
+
+        Task.Run(async () =>
+        {
+            try
+            {
+                var userMessages = engine.Cloud.Messages.GetUserMessages(userId);
+                bool sent = await userMessages.SendInviteMessage(sessionInfo);
+                Console.WriteLine(sent
+                    ? $"Invited '{contactUsername}' to '{world.Name}'."
+                    : $"Failed to send invite to '{contactUsername}'.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending invite: {ex.Message}");
+            }
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleContactInfoCommand(FrooxEngine.Engine engine, string username)
+    {
+        SkyFrost.Base.ContactData? targetContact = null;
+        engine.Cloud.Contacts.ForeachContactData(cd =>
+        {
+            if (targetContact == null &&
+                cd.Contact.ContactUsername.Equals(username, StringComparison.OrdinalIgnoreCase))
+            {
+                targetContact = cd;
+            }
+        });
+
+        if (targetContact == null)
+        {
+            Console.WriteLine($"Contact '{username}' not found. Make sure you have them as an accepted contact.");
+            return;
+        }
+
+        var contact = targetContact.Contact;
+        var status = targetContact.CurrentStatus;
+        var onlineStatus = status?.OnlineStatus ?? SkyFrost.Base.OnlineStatus.Offline;
+
+        Console.WriteLine($"\n--- Contact: {contact.ContactUsername} (ID: {contact.ContactUserId}) ---");
+        Console.WriteLine($"  Online Status: {onlineStatus}");
+
+        if (status?.Sessions != null && status.Sessions.Count > 0)
+        {
+            Console.WriteLine($"  Sessions ({status.Sessions.Count}):");
+            foreach (var session in status.Sessions)
+            {
+                string hostTag = session.IsHost ? " [HOST]" : "";
+                string hiddenTag = session.SessionHidden ? " [Hidden]" : "";
+                Console.WriteLine($"    - Access: {session.AccessLevel}{hostTag}{hiddenTag}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("  Sessions: None");
+        }
+
+        var currentSessionInfo = targetContact.CurrentSessionInfo;
+        if (currentSessionInfo != null)
+        {
+            Console.WriteLine($"  Current Session: {currentSessionInfo.Name ?? "(No Name)"}");
+            Console.WriteLine($"    Host: {currentSessionInfo.HostUsername ?? "N/A"} | Users: {currentSessionInfo.JoinedUsers}/{currentSessionInfo.MaximumUsers} | Access: {currentSessionInfo.AccessLevel}");
+            Console.WriteLine($"    Use 'contactJoin {contact.ContactUsername}' to join.");
+        }
+        Console.WriteLine($"---\n");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleContactJoinCommand(FrooxEngine.Engine engine, string username)
+    {
+        SkyFrost.Base.ContactData? targetContact = null;
+        engine.Cloud.Contacts.ForeachContactData(cd =>
+        {
+            if (targetContact == null &&
+                cd.Contact.ContactUsername.Equals(username, StringComparison.OrdinalIgnoreCase))
+            {
+                targetContact = cd;
+            }
+        });
+
+        if (targetContact == null)
+        {
+            Console.WriteLine($"Contact '{username}' not found. Make sure you have them as an accepted contact.");
+            return;
+        }
+
+        var sessionInfo = targetContact.CurrentSessionInfo;
+        if (sessionInfo == null)
+        {
+            Console.WriteLine($"'{username}' is not currently in a visible session, or their session is private.");
+            return;
+        }
+
+        var urls = sessionInfo.GetSessionURLs();
+        if (urls == null || urls.Count == 0)
+        {
+            Console.WriteLine($"No valid session URLs found for '{username}'s session.");
+            return;
+        }
+
+        Console.WriteLine($"Joining '{username}'s session: {sessionInfo.Name ?? "(No Name)"}...");
+        FrooxEngine.Userspace.JoinSession(urls);
+        Console.WriteLine("Session Join requested.");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -67,6 +67,53 @@ accessLevel Anyone
 
 - セッションにフォーカスしていない場合は実行できません
 
+### `contactInvite <username>`
+
+コンタクトリストにいるユーザーを現在フォーカスしているセッションに招待します。
+
+```
+contactInvite SomeUser
+```
+
+- ログイン済みで、対象ユーザーがコンタクトとして承認済みである必要があります
+- セッションにフォーカスしていない場合は実行できません
+- 招待と同時に対象ユーザーをセッションの参加許可リストに追加します（アクセスレベルが制限されている場合でも参加可能になります）
+
+### `contactInfo <username>`
+
+コンタクトのオンライン状態と参加中のセッション情報を表示します。
+
+```
+contactInfo SomeUser
+```
+
+出力例：
+```
+--- Contact: SomeUser (ID: U-xxxxxxxx) ---
+  Online Status: Online
+  Sessions (1):
+    - Access: Contacts [HOST]
+  Current Session: My Cool World
+    Host: SomeUser | Users: 3/16 | Access: Contacts
+    Use 'contactJoin SomeUser' to join.
+---
+```
+
+- セッション名はプライバシー設計によりセッション一覧には表示されません（アクセスレベルのみ）
+- `CurrentSession` は自分がアクセス可能な場合のみ詳細が表示されます
+
+### `contactJoin <username>`
+
+コンタクトが現在いるセッションに参加します。
+
+```
+contactJoin SomeUser
+```
+
+- ログイン済みで、対象ユーザーがコンタクトとして承認済みである必要があります
+- 相手のセッションが非公開またはアクセス不可の場合は参加できません
+- `contactInfo` でセッション情報を確認してから実行することを推奨します
+
 ### `join <session_id/url>`
 
 指定したセッションに参加します。
