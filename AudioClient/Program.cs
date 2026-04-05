@@ -127,6 +127,8 @@ public class Program
         Console.WriteLine("  login <user> <password>          - Login to Resonite");
         Console.WriteLine("  logout                           - Logout from Resonite");
         Console.WriteLine("  mute                             - Toggle microphone mute");
+        Console.WriteLine("  voiceMode [mode]                 - Show or set voice mode (Normal/Shout/Broadcast/Whisper/Mute)");
+        Console.WriteLine("  import <path>                    - Import an asset file into the current session");
         Console.WriteLine("  exit / quit                      - Shutdown the client");
         Console.WriteLine("==================================================================");
 
@@ -356,6 +358,19 @@ public class Program
 
                 case "locomotion":
                     HandleLocomotionCommand(engine, args);
+                    break;
+
+                case "voicemode":
+                    HandleVoiceModeCommand(engine, args);
+                    break;
+
+                case "import":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: import <path>");
+                        break;
+                    }
+                    HandleImportCommand(engine, string.Join(" ", args.Skip(1)));
                     break;
 
                 case "exit":
@@ -786,6 +801,91 @@ public class Program
         {
             Console.WriteLine($"Locomotion module matching '{targetName}' not found.");
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleVoiceModeCommand(FrooxEngine.Engine engine, string[] args)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world. Join a session first.");
+            return;
+        }
+
+        var localUser = world.LocalUser;
+        if (localUser == null)
+        {
+            Console.WriteLine("Local user not available.");
+            return;
+        }
+
+        if (args.Length < 2)
+        {
+            Console.WriteLine($"Current voice mode: {localUser.VoiceMode}");
+            Console.WriteLine("Available modes: Normal, Shout, Broadcast, Whisper, Mute");
+            Console.WriteLine("Usage: voiceMode <mode>");
+            return;
+        }
+
+        string modeName = args[1].ToLowerInvariant();
+        FrooxEngine.VoiceMode targetMode;
+        switch (modeName)
+        {
+            case "normal":    targetMode = FrooxEngine.VoiceMode.Normal;    break;
+            case "shout":     targetMode = FrooxEngine.VoiceMode.Shout;     break;
+            case "broadcast": targetMode = FrooxEngine.VoiceMode.Broadcast; break;
+            case "whisper":   targetMode = FrooxEngine.VoiceMode.Whisper;   break;
+            case "mute":      targetMode = FrooxEngine.VoiceMode.Mute;      break;
+            default:
+                Console.WriteLine($"Unknown voice mode: '{args[1]}'");
+                Console.WriteLine("Available modes: Normal, Shout, Broadcast, Whisper, Mute");
+                return;
+        }
+
+        world.RunSynchronously(() =>
+        {
+            localUser.VoiceMode = targetMode;
+        });
+        Console.WriteLine($"Voice mode set to: {targetMode}");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleImportCommand(FrooxEngine.Engine engine, string path)
+    {
+        // パスの前後の引用符を除去（シェルから渡されたパスに含まれる場合）
+        path = path.Trim('"', '\'');
+
+        if (!File.Exists(path))
+        {
+            Console.WriteLine($"File not found: {path}");
+            return;
+        }
+
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world. Join a session first.");
+            return;
+        }
+
+        var localUser = world.LocalUser;
+        if (localUser?.Root == null)
+        {
+            Console.WriteLine("Local user not available.");
+            return;
+        }
+
+        // ローカルユーザーの前方2mの位置にインポート
+        var headPos = localUser.Root.HeadPosition;
+        var headRot = localUser.Root.HeadFacingRotation;
+        // forward ベクトル: Resonite は右手系、Z+ が手前なので回転適用で前方を求める
+        var forward = headRot * new Elements.Core.float3(0f, 0f, 1f);
+        var spawnPos = headPos + forward * 2f;
+
+        Console.WriteLine($"Importing '{Path.GetFileName(path)}'...");
+        FrooxEngine.UniversalImporter.Import(path, world, spawnPos, headRot, silent: true);
+        Console.WriteLine($"Import requested. The asset will appear in front of you.");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

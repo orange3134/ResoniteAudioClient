@@ -352,6 +352,41 @@ mute
 - ミュート中に実行するとミュート解除
 - ミュート解除中に実行するとミュート
 
+### `voiceMode [mode]`
+
+ボイスモードを表示または切り替えます。
+
+```
+voiceMode           # 現在のモードを表示
+voiceMode Normal
+voiceMode Shout
+voiceMode Broadcast
+voiceMode Whisper
+voiceMode Mute
+```
+
+| モード | 説明 |
+|--------|------|
+| Normal | 通常の音声（空間音声、対数ロールオフ） |
+| Shout | 叫び声（広範囲に届く、線形ロールオフ） |
+| Broadcast | 全員に同じ音量で届く（空間音声なし） |
+| Whisper | 囁き（短距離のみ） |
+| Mute | ミュート |
+
+- セッションに参加していない状態では使用できません
+
+### `import <path>`
+
+任意のアセットファイルを現在のセッションにインポートします。ローカルユーザーの前方2mの位置にスポーンします。
+
+```
+import C:\path\to\file.png
+import C:\path\to\model.glb
+```
+
+- 対応フォーマットはFrooxEngineがサポートするすべてのアセット（画像、3Dモデル、音声、動画など）
+- セッションに参加していない状態では使用できません
+
 ### `exit` / `quit`
 
 AudioClientを終了します。
