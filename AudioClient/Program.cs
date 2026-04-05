@@ -116,6 +116,7 @@ public class Program
         Console.WriteLine("  currentSessions                  - List your connected sessions");
         Console.WriteLine("  focus <index>                    - Focus a connected session by index");
         Console.WriteLine("  users                            - List users in current session");
+        Console.WriteLine("  users --map                      - Show users on a 2D roguelike map (top-down view)");
         Console.WriteLine("  moveToUser <userName>            - Move to 1m in front of a user");
         Console.WriteLine("  locomotion [name]                - Switch to specified locomotion (e.g. Noclip)");
         Console.WriteLine("  name <name>                      - Rename the current session");
@@ -295,7 +296,10 @@ public class Program
                     break;
                 
                 case "users":
-                    HandleUsersCommand(engine);
+                    if (args.Any(a => a.Equals("--map", StringComparison.OrdinalIgnoreCase)))
+                        HandleUsersMapCommand(engine);
+                    else
+                        HandleUsersCommand(engine);
                     break;
 
                 case "movetouser":
@@ -393,6 +397,144 @@ public class Program
             Console.WriteLine("  (No users found)");
         }
         Console.WriteLine($"--- Total: {index} user(s) ---\n");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleUsersMapCommand(FrooxEngine.Engine engine)
+    {
+        const int MAP_W = 41;  // 奇数にすることで中心が明確になる
+        const int MAP_H = 21;
+        const float MAP_SCALE = 0.5f; // 1セル = MAP_SCALE メートル
+
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world. Join a session first.");
+            return;
+        }
+
+        var localUser = world.LocalUser;
+        if (localUser?.Root == null)
+        {
+            Console.WriteLine("Local user not available.");
+            return;
+        }
+
+        var myPos = localUser.Root.HeadPosition;
+        var myRot = localUser.Root.HeadFacingRotation;
+        // 自分の向きのY軸角度（度）を取得し、北をその方向に合わせる
+        float myYawDeg = myRot.EulerAngles.y;
+        float myYawRad = myYawDeg * MathF.PI / 180f;
+
+        // マップグリッドを初期化
+        var grid = new char[MAP_H, MAP_W];
+        var labelGrid = new string?[MAP_H, MAP_W]; // ユーザーラベル用
+        for (int r = 0; r < MAP_H; r++)
+            for (int c = 0; c < MAP_W; c++)
+                grid[r, c] = '.';
+
+        // 枠線
+        for (int c = 0; c < MAP_W; c++) { grid[0, c] = '-'; grid[MAP_H - 1, c] = '-'; }
+        for (int r = 0; r < MAP_H; r++) { grid[r, 0] = '|'; grid[r, MAP_W - 1] = '|'; }
+        grid[0, 0] = grid[0, MAP_W - 1] = grid[MAP_H - 1, 0] = grid[MAP_H - 1, MAP_W - 1] = '+';
+
+        // 自分を中心に置く（@）
+        int centerC = MAP_W / 2;
+        int centerR = MAP_H / 2;
+
+        // 自分の向きを矢印で表現
+        char selfChar = DirectionToArrow(myYawDeg);
+        grid[centerR, centerC] = selfChar;
+
+        // 他ユーザーを配置
+        var legend = new List<(char Symbol, string Name, float dist)>();
+        int userIdx = 0;
+        char[] symbols = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
+
+        foreach (var user in world.AllUsers)
+        {
+            if (user.IsLocalUser || user.Root == null) continue;
+
+            var pos = user.Root.HeadPosition;
+            // 相対ベクトル（ワールド空間）
+            float dx = pos.x - myPos.x;
+            float dz = pos.z - myPos.z;
+            float dist = MathF.Sqrt(dx * dx + dz * dz);
+
+            // 自分の向きを基準に回転（画面上方向 = 自分の正面）
+            float rotDx =  dx * MathF.Cos(-myYawRad) + dz * MathF.Sin(-myYawRad);
+            float rotDz = -dx * MathF.Sin(-myYawRad) + dz * MathF.Cos(-myYawRad);
+
+            // グリッド座標に変換（画面上 = 正面 = Z負方向）
+            int col = centerC + (int)MathF.Round(rotDx / MAP_SCALE);
+            int row = centerR - (int)MathF.Round(rotDz / MAP_SCALE);
+
+            char sym = userIdx < symbols.Length ? symbols[userIdx] : '?';
+            userIdx++;
+            legend.Add((sym, user.UserName, dist));
+
+            if (row > 0 && row < MAP_H - 1 && col > 0 && col < MAP_W - 1)
+            {
+                grid[row, col] = sym;
+            }
+            // 範囲外の場合は枠の端に方向インジケーターを置く
+            else
+            {
+                int clampedRow = Math.Clamp(row, 1, MAP_H - 2);
+                int clampedCol = Math.Clamp(col, 1, MAP_W - 2);
+                if (row <= 0)       clampedRow = 1;
+                if (row >= MAP_H-1) clampedRow = MAP_H - 2;
+                if (col <= 0)       clampedCol = 1;
+                if (col >= MAP_W-1) clampedCol = MAP_W - 2;
+                // 境界には既にシンボルがなければ配置
+                if (grid[clampedRow, clampedCol] == '.' || grid[clampedRow, clampedCol] == '*')
+                    grid[clampedRow, clampedCol] = '*'; // 範囲外ユーザーは * で示す
+            }
+        }
+
+        // 出力
+        Console.WriteLine($"\n--- User Map: {world.Name} ---");
+        Console.WriteLine($"  [{selfChar}] = You  |  Scale: 1 cell = {MAP_SCALE}m  |  Up = Your forward direction");
+        Console.WriteLine();
+
+        for (int r = 0; r < MAP_H; r++)
+        {
+            var sb = new System.Text.StringBuilder("  ");
+            for (int c = 0; c < MAP_W; c++)
+                sb.Append(grid[r, c]);
+            Console.WriteLine(sb.ToString());
+        }
+
+        Console.WriteLine();
+        if (legend.Count == 0)
+        {
+            Console.WriteLine("  (No other users in session)");
+        }
+        else
+        {
+            Console.WriteLine("  Legend:");
+            foreach (var (sym, name, dist) in legend)
+                Console.WriteLine($"    {sym} : {name} ({dist:F1}m)");
+        }
+        Console.WriteLine($"---\n");
+    }
+
+    private static char DirectionToArrow(float yawDeg)
+    {
+        // yawDeg: 0=North(+Z), 90=East(+X), 180=South(-Z), 270=West(-X) の想定
+        // Resoniteの座標系に合わせて調整
+        float normalized = ((yawDeg % 360f) + 360f) % 360f;
+        return normalized switch
+        {
+            >= 337.5f or < 22.5f  => '^',
+            >= 22.5f  and < 67.5f  => '/',  // NE
+            >= 67.5f  and < 112.5f => '>',
+            >= 112.5f and < 157.5f => '\\', // SE
+            >= 157.5f and < 202.5f => 'v',
+            >= 202.5f and < 247.5f => '/',  // SW (/ で代用)
+            >= 247.5f and < 292.5f => '<',
+            _                      => '\\', // NW
+        };
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
