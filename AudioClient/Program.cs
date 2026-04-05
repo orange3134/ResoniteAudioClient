@@ -170,9 +170,43 @@ public class Program
                         url = $"resrec:///{url}";
                         Console.WriteLine($"Normalized URL: {url}");
                     }
-                    
+
                     if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
                     {
+                        // res-steam:// はSteam P2Pを使うため、ヘッドレス環境では動作しない。
+                        // クラウドからセッション情報を取得し、lnl-nat:// URLを優先して使う。
+                        if (uri.Scheme == "res-steam")
+                        {
+                            Console.WriteLine("res-steam:// URL detected. Resolving lnl-nat:// URL from cloud...");
+                            string? sessionId = uri.Segments.LastOrDefault()?.TrimEnd('/');
+                            if (sessionId != null)
+                            {
+                                var sessions = new List<SkyFrost.Base.SessionInfo>();
+                                engine.Cloud.Sessions.GetSessions(sessions);
+                                var matchedSession = sessions.FirstOrDefault(s =>
+                                    s.SessionURLs != null &&
+                                    s.SessionURLs.Any(u => u.Contains(sessionId)));
+
+                                if (matchedSession?.SessionURLs != null)
+                                {
+                                    var allUris = matchedSession.SessionURLs
+                                        .Select(u => Uri.TryCreate(u, UriKind.Absolute, out Uri? parsed) ? parsed : null)
+                                        .Where(u => u != null)
+                                        .Select(u => u!)
+                                        .OrderBy(u => u.Scheme.StartsWith("lnl") ? 0 : 1) // lnl系を優先
+                                        .ToList();
+
+                                    if (allUris.Count > 0)
+                                    {
+                                        Console.WriteLine($"Found {allUris.Count} URL(s). Preferred: {allUris[0]}");
+                                        FrooxEngine.Userspace.JoinSession(allUris);
+                                        Console.WriteLine("Session Join requested.");
+                                        break;
+                                    }
+                                }
+                                Console.WriteLine("Could not resolve session from cloud. The session may be private or not listed. Trying res-steam:// directly (may fail)...");
+                            }
+                        }
                         FrooxEngine.Userspace.JoinSession(uri);
                         Console.WriteLine("Session Join requested.");
                     }
@@ -555,7 +589,11 @@ public class Program
         foreach (var session in sessions)
         {
             index++;
-            string sessionUrl = session.SessionURLs?.FirstOrDefault() ?? "N/A";
+            // lnl-nat:// を優先して表示（res-steam:// はヘッドレス環境で使用不可）
+            string sessionUrl = session.SessionURLs?.FirstOrDefault(u => u.StartsWith("lnl-nat://"))
+                ?? session.SessionURLs?.FirstOrDefault(u => u.StartsWith("lnl://"))
+                ?? session.SessionURLs?.FirstOrDefault()
+                ?? "N/A";
             Console.WriteLine($"  {index}. {session.Name ?? "(No Name)"}");
             Console.WriteLine($"     Host: {session.HostUsername ?? "N/A"} | Users: {session.JoinedUsers}/{session.MaximumUsers} | Access: {session.AccessLevel}");
             Console.WriteLine($"     URL: {sessionUrl}");
