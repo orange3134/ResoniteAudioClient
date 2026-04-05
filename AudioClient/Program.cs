@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -102,7 +104,15 @@ public class Program
         // 4. Command Line Interface
         Console.WriteLine("==================================================================");
         Console.WriteLine("AudioClient is ready.");
-        Console.WriteLine("Commands: join <session_id/url> | leave | exit");
+        Console.WriteLine("Commands:");
+        Console.WriteLine("  join <session_id/url>    - Join a session");
+        Console.WriteLine("  activeSessions           - List available sessions to join");
+        Console.WriteLine("  currentSessions          - List your connected sessions");
+        Console.WriteLine("  focus <index>            - Focus a connected session by index");
+        Console.WriteLine("  users                    - List users in current session");
+        Console.WriteLine("  moveToUser <userName>    - Move to 1m in front of a user");
+        Console.WriteLine("  leave                    - Leave current session");
+        Console.WriteLine("  exit / quit              - Shutdown the client");
         Console.WriteLine("==================================================================");
 
         while (!_shutdownRequested)
@@ -168,8 +178,40 @@ public class Program
                     }
                     break;
                 
+                case "users":
+                    HandleUsersCommand(engine);
+                    break;
+
+                case "movetouser":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: moveToUser <userName>");
+                        break;
+                    }
+                    // Support multi-word usernames by joining all args after the command
+                    string targetUserName = string.Join(" ", args.Skip(1));
+                    HandleMoveToUserCommand(engine, targetUserName);
+                    break;
+
+                case "activesessions":
+                    HandleActiveSessionsCommand(engine);
+                    break;
+
+                case "currentsessions":
+                    HandleCurrentSessionsCommand(engine);
+                    break;
+
+                case "focus":
+                    if (args.Length < 2 || !int.TryParse(args[1], out int focusIndex))
+                    {
+                        Console.WriteLine("Usage: focus <index>");
+                        break;
+                    }
+                    HandleFocusCommand(engine, focusIndex);
+                    break;
+
                 case "leave":
-                    Console.WriteLine("Not fully implemented yet. Please use exit/restart.");
+                    HandleLeaveCommand(engine);
                     break;
 
                 case "exit":
@@ -186,6 +228,207 @@ public class Program
         {
             Console.WriteLine($"Error processing command: {ex.Message}");
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleUsersCommand(FrooxEngine.Engine engine)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world. Join a session first.");
+            return;
+        }
+
+        Console.WriteLine($"\n--- Users in '{world.Name}' (Session: {world.SessionId}) ---");
+        int index = 0;
+        foreach (var user in world.AllUsers)
+        {
+            index++;
+            string hostTag = user.IsHost ? " [HOST]" : "";
+            string presenceTag = user.IsPresentInWorld ? "Present" : "Away";
+            string localTag = user.IsLocalUser ? " (You)" : "";
+            Console.WriteLine($"  {index}. {user.UserName}{localTag}{hostTag} | ID: {user.UserID ?? "N/A"} | {presenceTag} | Ping: {user.Ping}ms");
+        }
+        if (index == 0)
+        {
+            Console.WriteLine("  (No users found)");
+        }
+        Console.WriteLine($"--- Total: {index} user(s) ---\n");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleMoveToUserCommand(FrooxEngine.Engine engine, string targetUserName)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world. Join a session first.");
+            return;
+        }
+
+        var localUser = world.LocalUser;
+        if (localUser?.Root == null)
+        {
+            Console.WriteLine("Local user or user root not available.");
+            return;
+        }
+
+        // Find the target user by name (case-insensitive)
+        FrooxEngine.User? targetUser = null;
+        foreach (var user in world.AllUsers)
+        {
+            if (string.Equals(user.UserName, targetUserName, StringComparison.OrdinalIgnoreCase))
+            {
+                targetUser = user;
+                break;
+            }
+        }
+
+        if (targetUser == null)
+        {
+            Console.WriteLine($"User '{targetUserName}' not found in the current session.");
+            Console.WriteLine("Available users:");
+            foreach (var user in world.AllUsers)
+            {
+                if (!user.IsLocalUser)
+                {
+                    Console.WriteLine($"  - {user.UserName}");
+                }
+            }
+            return;
+        }
+
+        if (targetUser.IsLocalUser)
+        {
+            Console.WriteLine("Cannot move to yourself.");
+            return;
+        }
+
+        var targetRoot = targetUser.Root;
+        if (targetRoot == null)
+        {
+            Console.WriteLine($"User '{targetUserName}' does not have a UserRoot (not fully spawned?).");
+            return;
+        }
+
+        // JumpToPoint modifies the data model, so it must run on the world's synchronized thread
+        var capturedTargetRoot = targetRoot;
+        var capturedLocalRoot = localUser.Root;
+        var capturedName = targetUser.UserName;
+        world.RunSynchronously(() =>
+        {
+            var headPosition = capturedTargetRoot.HeadPosition;
+            capturedLocalRoot.JumpToPoint(headPosition, 1.0f);
+        });
+        Console.WriteLine($"Moved to 1m in front of '{capturedName}'.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleLeaveCommand(FrooxEngine.Engine engine)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world to leave.");
+            return;
+        }
+
+        string worldName = world.Name;
+        Console.WriteLine($"Leaving session '{worldName}'...");
+        try
+        {
+            FrooxEngine.Userspace.ExitWorld(world);
+            Console.WriteLine($"Left session '{worldName}'.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error leaving session: {ex.Message}");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleActiveSessionsCommand(FrooxEngine.Engine engine)
+    {
+        var sessions = new List<SkyFrost.Base.SessionInfo>();
+        engine.Cloud.Sessions.GetSessions(sessions);
+
+        if (sessions.Count == 0)
+        {
+            Console.WriteLine("No active sessions found.");
+            return;
+        }
+
+        Console.WriteLine($"\n--- Active Sessions ({sessions.Count}) ---");
+        int index = 0;
+        foreach (var session in sessions)
+        {
+            index++;
+            string sessionUrl = session.SessionURLs?.FirstOrDefault() ?? "N/A";
+            Console.WriteLine($"  {index}. {session.Name ?? "(No Name)"}");
+            Console.WriteLine($"     Host: {session.HostUsername ?? "N/A"} | Users: {session.JoinedUsers}/{session.MaximumUsers} | Access: {session.AccessLevel}");
+            Console.WriteLine($"     URL: {sessionUrl}");
+        }
+        Console.WriteLine($"--- End of sessions ---\n");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleCurrentSessionsCommand(FrooxEngine.Engine engine)
+    {
+        var worldList = new List<FrooxEngine.World>();
+        engine.WorldManager.GetWorlds(worldList);
+
+        // Filter out userspace worlds
+        var sessionWorlds = worldList.Where(w => w != FrooxEngine.Userspace.UserspaceWorld).ToList();
+
+        if (sessionWorlds.Count == 0)
+        {
+            Console.WriteLine("No connected sessions.");
+            return;
+        }
+
+        var focusedWorld = engine.WorldManager.FocusedWorld;
+        Console.WriteLine($"\n--- Connected Sessions ({sessionWorlds.Count}) ---");
+        for (int i = 0; i < sessionWorlds.Count; i++)
+        {
+            var world = sessionWorlds[i];
+            string focusTag = (world == focusedWorld) ? " [FOCUSED]" : "";
+            string stateTag = world.State.ToString();
+            int userCount = world.AllUsers.Count();
+            Console.WriteLine($"  {i + 1}. {world.Name ?? "(No Name)"}{focusTag} | State: {stateTag} | Users: {userCount} | Session: {world.SessionId}");
+        }
+        Console.WriteLine($"--- End of sessions ---\n");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleFocusCommand(FrooxEngine.Engine engine, int index)
+    {
+        var worldList = new List<FrooxEngine.World>();
+        engine.WorldManager.GetWorlds(worldList);
+
+        var sessionWorlds = worldList.Where(w => w != FrooxEngine.Userspace.UserspaceWorld).ToList();
+
+        if (sessionWorlds.Count == 0)
+        {
+            Console.WriteLine("No connected sessions to focus.");
+            return;
+        }
+
+        if (index < 1 || index > sessionWorlds.Count)
+        {
+            Console.WriteLine($"Invalid index. Please specify a number between 1 and {sessionWorlds.Count}.");
+            return;
+        }
+
+        var targetWorld = sessionWorlds[index - 1];
+        if (targetWorld.State != FrooxEngine.World.WorldState.Running)
+        {
+            Console.WriteLine($"Cannot focus session '{targetWorld.Name}' (State: {targetWorld.State}).");
+            return;
+        }
+
+        engine.WorldManager.FocusWorld(targetWorld);
+        Console.WriteLine($"Focused on session '{targetWorld.Name}'.");
     }
 
     private static void InitializeLogging()

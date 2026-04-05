@@ -41,6 +41,16 @@
       <Private>false</Private>
       <SpecificVersion>false</SpecificVersion>
     </Reference>
+    <Reference Include="SkyFrost.Base">
+      <HintPath>$(GamePath)SkyFrost.Base.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="SkyFrost.Base.Models">
+      <HintPath>$(GamePath)SkyFrost.Base.Models.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
   </ItemGroup>
 
   <!-- Post-build copy to game folder -->
