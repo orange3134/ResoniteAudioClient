@@ -106,6 +106,7 @@ public class Program
         Console.WriteLine("AudioClient is ready.");
         Console.WriteLine("Commands:");
         Console.WriteLine("  join <session_id/url>            - Join a session");
+        Console.WriteLine("  contactList                      - List all online contacts and their current session");
         Console.WriteLine("  contactInvite <username>         - Invite a contact to the current session");
         Console.WriteLine("  contactInfo <username>           - Show contact's online status and sessions");
         Console.WriteLine("  contactJoin <username>           - Join the session a contact is currently in");
@@ -162,6 +163,10 @@ public class Program
         {
             switch (command)
             {
+                case "contactlist":
+                    HandleContactListCommand(engine);
+                    break;
+
                 case "contactinvite":
                     if (args.Length < 2)
                     {
@@ -731,6 +736,37 @@ public class Program
 
         engine.WorldManager.FocusWorld(targetWorld);
         Console.WriteLine($"Focused on session '{targetWorld.Name}'.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleContactListCommand(FrooxEngine.Engine engine)
+    {
+        var onlineContacts = new List<(string Name, string Status, string? SessionName)>();
+
+        engine.Cloud.Contacts.ForeachContactData(cd =>
+        {
+            var status = cd.CurrentStatus;
+            var onlineStatus = status?.OnlineStatus ?? SkyFrost.Base.OnlineStatus.Offline;
+            if (onlineStatus == SkyFrost.Base.OnlineStatus.Offline || onlineStatus == SkyFrost.Base.OnlineStatus.Invisible)
+                return;
+
+            string? sessionName = cd.CurrentSessionInfo?.Name;
+            onlineContacts.Add((cd.Contact.ContactUsername, onlineStatus.ToString(), sessionName));
+        });
+
+        if (onlineContacts.Count == 0)
+        {
+            Console.WriteLine("No contacts are currently online.");
+            return;
+        }
+
+        Console.WriteLine($"\n--- Online Contacts ({onlineContacts.Count}) ---");
+        foreach (var (name, status, sessionName) in onlineContacts)
+        {
+            string sessionTag = sessionName != null ? $" | Session: {sessionName}" : "";
+            Console.WriteLine($"  {name} [{status}]{sessionTag}");
+        }
+        Console.WriteLine($"---\n");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

@@ -67,6 +67,26 @@ accessLevel Anyone
 
 - セッションにフォーカスしていない場合は実行できません
 
+### `contactList`
+
+現在オンラインの全コンタクトの名前・ステータス・参加中セッション名を一覧表示します。
+
+```
+contactList
+```
+
+出力例：
+```
+--- Online Contacts (3) ---
+  SomeUser [Online] | Session: My Cool World
+  AnotherUser [Away]
+  FriendUser [Sociable] | Session: Chill Hangout
+---
+```
+
+- `Offline` および `Invisible` のコンタクトは表示されません
+- セッション名はアクセス可能な場合のみ表示されます（非公開セッションは表示なし）
+
 ### `contactInvite <username>`
 
 コンタクトリストにいるユーザーを現在フォーカスしているセッションに招待します。
