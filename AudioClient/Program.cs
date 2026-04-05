@@ -105,18 +105,22 @@ public class Program
         Console.WriteLine("==================================================================");
         Console.WriteLine("AudioClient is ready.");
         Console.WriteLine("Commands:");
-        Console.WriteLine("  join <session_id/url>    - Join a session");
-        Console.WriteLine("  activeSessions           - List available sessions to join");
-        Console.WriteLine("  currentSessions          - List your connected sessions");
-        Console.WriteLine("  focus <index>            - Focus a connected session by index");
-        Console.WriteLine("  users                    - List users in current session");
-        Console.WriteLine("  moveToUser <userName>    - Move to 1m in front of a user");
-        Console.WriteLine("  locomotion [name]        - Switch to specified locomotion (e.g. Noclip)");
-        Console.WriteLine("  leave                    - Leave current session");
-        Console.WriteLine("  login <user> <password>  - Login to Resonite");
-        Console.WriteLine("  logout                   - Logout from Resonite");
-        Console.WriteLine("  mute                     - Toggle microphone mute");
-        Console.WriteLine("  exit / quit              - Shutdown the client");
+        Console.WriteLine("  join <session_id/url>            - Join a session");
+        Console.WriteLine("  startWorldURL <recordURL>        - Start a new session from a record URL");
+        Console.WriteLine("  startWorldTemplate <name>        - Start a new session from a built-in template");
+        Console.WriteLine("  activeSessions                   - List available sessions to join");
+        Console.WriteLine("  currentSessions                  - List your connected sessions");
+        Console.WriteLine("  focus <index>                    - Focus a connected session by index");
+        Console.WriteLine("  users                            - List users in current session");
+        Console.WriteLine("  moveToUser <userName>            - Move to 1m in front of a user");
+        Console.WriteLine("  locomotion [name]                - Switch to specified locomotion (e.g. Noclip)");
+        Console.WriteLine("  name <name>                      - Rename the current session");
+        Console.WriteLine("  accessLevel <level>              - Set access level of current session");
+        Console.WriteLine("  leave                            - Leave current session");
+        Console.WriteLine("  login <user> <password>          - Login to Resonite");
+        Console.WriteLine("  logout                           - Logout from Resonite");
+        Console.WriteLine("  mute                             - Toggle microphone mute");
+        Console.WriteLine("  exit / quit                      - Shutdown the client");
         Console.WriteLine("==================================================================");
 
         while (!_shutdownRequested)
@@ -155,6 +159,45 @@ public class Program
         {
             switch (command)
             {
+                case "startworldurl":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: startWorldURL <recordURL>");
+                        break;
+                    }
+                    HandleStartWorldURLCommand(string.Join(" ", args.Skip(1)));
+                    break;
+
+                case "startworldtemplate":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: startWorldTemplate <templateName>");
+                        Console.WriteLine("Available templates:");
+                        foreach (var p in FrooxEngine.WorldPresets.Presets)
+                            Console.WriteLine($"  - {p.Name}");
+                        break;
+                    }
+                    HandleStartWorldTemplateCommand(string.Join(" ", args.Skip(1)));
+                    break;
+
+                case "name":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: name <newName>");
+                        break;
+                    }
+                    HandleNameCommand(engine, string.Join(" ", args.Skip(1)));
+                    break;
+
+                case "accesslevel":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: accessLevel <Private|LAN|Contacts|ContactsPlus|RegisteredUsers|Anyone>");
+                        break;
+                    }
+                    HandleAccessLevelCommand(engine, args[1]);
+                    break;
+
                 case "join":
                     if (args.Length < 2)
                     {
@@ -658,6 +701,88 @@ public class Program
 
         engine.WorldManager.FocusWorld(targetWorld);
         Console.WriteLine($"Focused on session '{targetWorld.Name}'.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleStartWorldURLCommand(string recordUrl)
+    {
+        if (!Uri.TryCreate(recordUrl, UriKind.Absolute, out Uri? uri))
+        {
+            Console.WriteLine($"Invalid URL: {recordUrl}");
+            return;
+        }
+
+        Console.WriteLine($"Starting world from URL: {uri}...");
+        Task.Run(async () =>
+        {
+            try
+            {
+                var settings = new FrooxEngine.WorldStartSettings(uri);
+                var world = await FrooxEngine.Userspace.OpenWorld(settings);
+                Console.WriteLine(world != null ? $"World started: {world.Name}" : "World start failed (null returned).");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error starting world: {ex.Message}");
+            }
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleStartWorldTemplateCommand(string templateName)
+    {
+        var preset = FrooxEngine.WorldPresets.Presets
+            .FirstOrDefault(p => p.Name.Equals(templateName, StringComparison.OrdinalIgnoreCase));
+
+        if (preset == null)
+        {
+            Console.WriteLine($"Template '{templateName}' not found.");
+            Console.WriteLine("Available templates:");
+            foreach (var p in FrooxEngine.WorldPresets.Presets)
+                Console.WriteLine($"  - {p.Name}");
+            return;
+        }
+
+        Console.WriteLine($"Starting world from template '{preset.Name}'...");
+        var world = FrooxEngine.Userspace.StartSession(preset.Method);
+        Console.WriteLine(world != null ? $"World started: {world.Name}" : "World start failed (null returned).");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleNameCommand(FrooxEngine.Engine engine, string newName)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null || world == FrooxEngine.Userspace.UserspaceWorld)
+        {
+            Console.WriteLine("No active session focused.");
+            return;
+        }
+
+        string oldName = world.Name;
+        world.Name = newName;
+        Console.WriteLine($"Session name changed: '{oldName}' -> '{newName}'");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleAccessLevelCommand(FrooxEngine.Engine engine, string levelName)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null || world == FrooxEngine.Userspace.UserspaceWorld)
+        {
+            Console.WriteLine("No active session focused.");
+            return;
+        }
+
+        if (!Enum.TryParse<SkyFrost.Base.SessionAccessLevel>(levelName, ignoreCase: true, out var level))
+        {
+            Console.WriteLine($"Invalid access level '{levelName}'.");
+            Console.WriteLine("Valid values: Private, LAN, Contacts, ContactsPlus, RegisteredUsers, Anyone");
+            return;
+        }
+
+        var oldLevel = world.AccessLevel;
+        world.AccessLevel = level;
+        Console.WriteLine($"Access level changed: {oldLevel} -> {level}");
     }
 
     private static void InitializeLogging()

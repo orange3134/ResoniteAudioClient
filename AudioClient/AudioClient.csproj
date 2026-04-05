@@ -51,6 +51,11 @@
       <Private>false</Private>
       <SpecificVersion>false</SpecificVersion>
     </Reference>
+    <Reference Include="FrooxEngine.Store">
+      <HintPath>$(GamePath)FrooxEngine.Store.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
   </ItemGroup>
 
   <!-- Post-build copy to game folder -->

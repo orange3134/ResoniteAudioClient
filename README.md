@@ -6,6 +6,67 @@ Resoniteの音声専用ヘッドレスクライアントです。GUIなしでコ
 
 起動後、以下のコマンドをコンソールに入力して操作できます。
 
+### `startWorldURL <recordURL>`
+
+ワールドのレコードURLから新しいセッションを開始します。
+
+```
+startWorldURL resrec:///U-xxxxxxxx/R-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
+
+- `resrec://` 形式のURLを指定してください
+- セッションが開始されるとワールド名が表示されます
+
+### `startWorldTemplate <templateName>`
+
+組み込みテンプレートから新しいセッションを開始します。
+
+```
+startWorldTemplate Blank
+startWorldTemplate Grid
+startWorldTemplate Platform
+```
+
+引数なしで実行すると利用可能なテンプレート一覧を表示します。
+
+| テンプレート名 | 説明 |
+|---|---|
+| `Blank` | 基本的な照明とスカイボックスのみのシンプルな空ワールド |
+| `Grid` | グリッドテクスチャの床があるワールド |
+| `Platform` | 円形の床プラットフォームがあるワールド |
+| `DebugWorld` | デバッグ用ワールド |
+
+### `name <name>`
+
+現在フォーカスしているセッションの名前を変更します。
+
+```
+name My New World Name
+```
+
+- スペースを含む名前にも対応しています
+- セッションにフォーカスしていない場合は実行できません
+
+### `accessLevel <level>`
+
+現在フォーカスしているセッションのアクセスレベルを設定します。
+
+```
+accessLevel Contacts
+accessLevel Anyone
+```
+
+| レベル | 説明 |
+|---|---|
+| `Private` | ホストのみ |
+| `LAN` | ローカルネットワーク内のみ |
+| `Contacts` | 自分のコンタクトのみ |
+| `ContactsPlus` | コンタクトとそのコンタクト |
+| `RegisteredUsers` | 登録済みユーザー全員 |
+| `Anyone` | 誰でも参加可能 |
+
+- セッションにフォーカスしていない場合は実行できません
+
 ### `join <session_id/url>`
 
 指定したセッションに参加します。
