@@ -111,6 +111,7 @@ public class Program
         Console.WriteLine("  focus <index>            - Focus a connected session by index");
         Console.WriteLine("  users                    - List users in current session");
         Console.WriteLine("  moveToUser <userName>    - Move to 1m in front of a user");
+        Console.WriteLine("  locomotion [name]        - Switch to specified locomotion (e.g. Noclip)");
         Console.WriteLine("  leave                    - Leave current session");
         Console.WriteLine("  login <user> <password>  - Login to Resonite");
         Console.WriteLine("  logout                   - Logout from Resonite");
@@ -233,6 +234,10 @@ public class Program
 
                 case "mute":
                     HandleMuteCommand(engine);
+                    break;
+
+                case "locomotion":
+                    HandleLocomotionCommand(engine, args);
                     break;
 
                 case "exit":
@@ -438,6 +443,93 @@ public class Program
         bool newState = !engine.AudioSystem.IsMuted;
         engine.AudioSystem.IsMuted = newState;
         Console.WriteLine(newState ? "Microphone MUTED." : "Microphone UNMUTED.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleLocomotionCommand(FrooxEngine.Engine engine, string[] args)
+    {
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null)
+        {
+            Console.WriteLine("No focused world.");
+            return;
+        }
+
+        var localUser = world.LocalUser;
+        if (localUser == null || localUser.Root == null)
+        {
+            Console.WriteLine("No local user available.");
+            return;
+        }
+
+        var locoController = localUser.Root.Slot.GetComponentInChildren<FrooxEngine.LocomotionController>();
+        if (locoController == null)
+        {
+            Console.WriteLine("No locomotion controller found on local user.");
+            return;
+        }
+
+        if (args.Length < 2)
+        {
+            Console.WriteLine("Available locomotion modules:");
+            foreach (var module in locoController.LocomotionModules)
+            {
+                if (module != null)
+                {
+                    string isActive = locoController.ActiveModule == module ? " (ACTIVE)" : "";
+                    string nameText = "";
+                    
+                    try {
+                        nameText = module.LocomotionName.ToString();
+                    } catch {
+                        nameText = module.GetType().Name;
+                    }
+                    
+                    Console.WriteLine($"  - {nameText}{isActive}");
+                }
+            }
+            Console.WriteLine("Usage: locomotion <LocomotionName>");
+            return;
+        }
+
+        string targetName = string.Join(" ", args.Skip(1)).ToLowerInvariant();
+        FrooxEngine.ILocomotionModule? targetModule = null;
+
+        foreach (var module in locoController.LocomotionModules)
+        {
+            if (module == null) continue;
+            
+            string moduleName = "";
+            try {
+                moduleName = module.LocomotionName.ToString();
+            } catch {
+                moduleName = module.GetType().Name;
+            }
+            
+            if (moduleName.ToLowerInvariant().Contains(targetName) || 
+                module.GetType().Name.ToLowerInvariant().Contains(targetName))
+            {
+                targetModule = module;
+                break;
+            }
+        }
+
+        if (targetModule != null)
+        {
+            world.RunSynchronously(() =>
+            {
+                locoController.ActiveModule = targetModule;
+            });
+            try {
+                Console.WriteLine($"Locomotion switched to: {targetModule.LocomotionName.ToString()}");
+            } catch {
+                Console.WriteLine($"Locomotion switched to: {targetModule.GetType().Name}");
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Locomotion module matching '{targetName}' not found.");
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

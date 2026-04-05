@@ -81,3 +81,24 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 
 ### エンジンのUpdate Loopについて
 `Engine.RunUpdateLoop()` は専用スレッドで10msインターバルで呼び出しています。CLIコマンドはメインスレッドで受け付け、`GlobalCoroutineManager.Post()` でエンジンスレッドに安全に送信しています。
+
+## ヘッドレス/UI未依存のコマンド実装について
+
+ヘッドレスクライアントでは、FrooxEngineのUI（`Canvas`や`Slot`上に構築されるインスペクターやメニュー）に依存するコマンドは使用できません。APIは内部コンポーネントを直接操作する必要があります。
+
+### データモデルの変更はRunSynchronouslyでラップする
+`FrooxEngine` 内のノード（`world.LocalUser` やコンポーネント）のプロパティを変更する際は、必ず **`world.RunSynchronously(() => { ... })`** 内で行ってください。さもないと `Modifications from a non-locking thread are disallowed!` というエラーが発生します（例外: `engine.AudioSystem` のようなグローバルマネージャーはスレッドセーフな場合があります）。
+
+### クラウド・セッション管理 (`engine.Cloud`)
+*   **ログイン**: `engine.Cloud.Session.Login(username, new PasswordLogin(password), secretMachineId, rememberMe: true, totp: null)` を使用します。非同期で通信します。
+*   **ログアウト**: `engine.Cloud.Session.Logout(isManual: true)`
+*   **セッション一覧**: `engine.Cloud.Sessions.GetSessions(List<SessionInfo>)`
+
+### ワールド・フォーカス管理 (`engine.WorldManager`)
+*   **現在参加中のワールド一覧**: `engine.WorldManager.Worlds`（ユーザーが参加しているすべてのワールドや`Userspace`）
+*   **ワールド切り替え（フォーカス）**: `engine.WorldManager.FocusWorld(World)`
+
+### アバター・ロコモーション操作 (`FrooxEngine.LocomotionController` など)
+*   ロコモーションモジュール等のコンポーネントは、`world.LocalUser.Root.Slot` の下層（`Locomotion Modules`など）に構築されています。
+*   `GetComponentInChildren<T>()` などを使いコンポーネントを探し出します。
+*   モジュール名（表示名）は `ILocomotionModule.LocomotionName` として存在しますが `LocaleString` 構造体（`struct`）であることに注意してください。値型のため `?.` ではなく `.ToString()` のような直接アクセスが必要です。
