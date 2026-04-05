@@ -75,9 +75,11 @@ public class Program
         var options = FrooxEngine.LaunchOptions.GetLaunchOptions(args);
         options.OutputDevice = Renderite.Shared.HeadOutputDevice.Screen;
         
-        // Use Resonite default directories so it behaves perfectly but inside a console.
-        options.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "..", "LocalLow", "Yellow Dog Man Studios", "Resonite");
-        options.CacheDirectory = Path.Combine(Path.GetTempPath(), "Yellow Dog Man Studios", "Resonite");
+        // コマンドライン引数で指定されていない場合のみデフォルトパスを使用
+        if (string.IsNullOrEmpty(options.DataDirectory))
+            options.DataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "..", "LocalLow", "Yellow Dog Man Studios", "Resonite");
+        if (string.IsNullOrEmpty(options.CacheDirectory))
+            options.CacheDirectory = Path.Combine(Path.GetTempPath(), "Yellow Dog Man Studios", "Resonite");
         
         // Locale defaults to the Locale folder in the game directory
         options.LocaleDirectory = Path.Combine(appDir, "Locale");
