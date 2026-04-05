@@ -112,6 +112,9 @@ public class Program
         Console.WriteLine("  users                    - List users in current session");
         Console.WriteLine("  moveToUser <userName>    - Move to 1m in front of a user");
         Console.WriteLine("  leave                    - Leave current session");
+        Console.WriteLine("  login <user> <password>  - Login to Resonite");
+        Console.WriteLine("  logout                   - Logout from Resonite");
+        Console.WriteLine("  mute                     - Toggle microphone mute");
         Console.WriteLine("  exit / quit              - Shutdown the client");
         Console.WriteLine("==================================================================");
 
@@ -194,7 +197,8 @@ public class Program
                     break;
 
                 case "activesessions":
-                    HandleActiveSessionsCommand(engine);
+                    bool activeOnly = args.Any(a => a.Equals("--active", StringComparison.OrdinalIgnoreCase));
+                    HandleActiveSessionsCommand(engine, activeOnly);
                     break;
 
                 case "currentsessions":
@@ -212,6 +216,23 @@ public class Program
 
                 case "leave":
                     HandleLeaveCommand(engine);
+                    break;
+
+                case "login":
+                    if (args.Length < 3)
+                    {
+                        Console.WriteLine("Usage: login <username> <password>");
+                        break;
+                    }
+                    HandleLoginCommand(engine, args[1], args[2]);
+                    break;
+
+                case "logout":
+                    HandleLogoutCommand(engine);
+                    break;
+
+                case "mute":
+                    HandleMuteCommand(engine);
                     break;
 
                 case "exit":
@@ -348,18 +369,96 @@ public class Program
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void HandleActiveSessionsCommand(FrooxEngine.Engine engine)
+    private static void HandleLoginCommand(FrooxEngine.Engine engine, string username, string password)
+    {
+        if (engine.Cloud.CurrentUser != null)
+        {
+            Console.WriteLine($"Already logged in as '{engine.Cloud.CurrentUsername}'. Use 'logout' first.");
+            return;
+        }
+
+        Console.WriteLine($"Logging in as '{username}'...");
+        Task.Run(async () =>
+        {
+            try
+            {
+                var auth = new SkyFrost.Base.PasswordLogin(password);
+                var result = await engine.Cloud.Session.Login(
+                    username,
+                    auth,
+                    engine.Cloud.SecretMachineId,
+                    rememberMe: true,
+                    totp: null
+                );
+
+                if (result.IsOK)
+                {
+                    Console.WriteLine($"Login successful! Logged in as: {engine.Cloud.CurrentUsername} (ID: {engine.Cloud.CurrentUserID})");
+                }
+                else
+                {
+                    Console.WriteLine($"Login failed: {result.State} - {result.Content}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Login error: {ex.Message}");
+            }
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleLogoutCommand(FrooxEngine.Engine engine)
+    {
+        if (engine.Cloud.CurrentUser == null)
+        {
+            Console.WriteLine("Not currently logged in.");
+            return;
+        }
+
+        string currentUsername = engine.Cloud.CurrentUsername ?? "Unknown";
+        Console.WriteLine($"Logging out '{currentUsername}'...");
+        Task.Run(async () =>
+        {
+            try
+            {
+                await engine.Cloud.Session.Logout(isManual: true);
+                Console.WriteLine("Logged out successfully.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Logout error: {ex.Message}");
+            }
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleMuteCommand(FrooxEngine.Engine engine)
+    {
+        bool newState = !engine.AudioSystem.IsMuted;
+        engine.AudioSystem.IsMuted = newState;
+        Console.WriteLine(newState ? "Microphone MUTED." : "Microphone UNMUTED.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleActiveSessionsCommand(FrooxEngine.Engine engine, bool activeOnly)
     {
         var sessions = new List<SkyFrost.Base.SessionInfo>();
         engine.Cloud.Sessions.GetSessions(sessions);
 
+        if (activeOnly)
+        {
+            sessions = sessions.Where(s => s.JoinedUsers >= 1).ToList();
+        }
+
         if (sessions.Count == 0)
         {
-            Console.WriteLine("No active sessions found.");
+            Console.WriteLine(activeOnly ? "No sessions with active users found." : "No active sessions found.");
             return;
         }
 
-        Console.WriteLine($"\n--- Active Sessions ({sessions.Count}) ---");
+        string label = activeOnly ? $"Active Sessions with users ({sessions.Count})" : $"Active Sessions ({sessions.Count})";
+        Console.WriteLine($"\n--- {label} ---");
         int index = 0;
         foreach (var session in sessions)
         {
