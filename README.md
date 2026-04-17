@@ -431,6 +431,34 @@ import C:\path\to\model.glb
 - 対応フォーマットはFrooxEngineがサポートするすべてのアセット（画像、3Dモデル、音声、動画など）
 - セッションに参加していない状態では使用できません
 
+### `inventoryList [path]`
+
+クラウドインベントリのディレクトリ内容を一覧表示します。パスを省略するとルートを表示します。
+
+```
+inventoryList
+inventoryList Avatars
+inventoryList Objects/Props
+```
+
+- ディレクトリは `[DIR]`、アイテムは `[OBJ]` で表示されます
+- パスは `/` 区切りで指定します（大文字小文字を区別しません）
+- ログインしていない状態では使用できません
+
+### `inventorySpawn <path>`
+
+クラウドインベントリのアイテムを現在のワールドにスポーンします。ローカルユーザーの目の前に配置されます。
+
+```
+inventorySpawn My Gadget
+inventorySpawn Objects/Cool Tool
+inventorySpawn Avatars/My Avatar
+```
+
+- パスは `ディレクトリ/アイテム名` の形式で指定します（大文字小文字を区別しません）
+- アイテム名にスペースを含む場合もそのまま入力できます
+- セッションに参加していない状態では使用できません
+
 ### `exit` / `quit`
 
 AudioClientを終了します。

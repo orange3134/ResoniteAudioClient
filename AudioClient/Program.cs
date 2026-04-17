@@ -131,6 +131,8 @@ public class Program
         Console.WriteLine("  mute                             - Toggle microphone mute");
         Console.WriteLine("  voiceMode [mode]                 - Show or set voice mode (Normal/Shout/Broadcast/Whisper/Mute)");
         Console.WriteLine("  import <path>                    - Import an asset file into the current session");
+        Console.WriteLine("  inventoryList [path]             - List inventory directory (e.g. inventoryList Objects)");
+        Console.WriteLine("  inventorySpawn <path>            - Spawn inventory item into current world (e.g. inventorySpawn Objects/My Tool)");
         Console.WriteLine("  exit / quit                      - Shutdown the client");
         Console.WriteLine("==================================================================");
 
@@ -381,6 +383,19 @@ public class Program
                         break;
                     }
                     HandleImportCommand(engine, string.Join(" ", args.Skip(1)));
+                    break;
+
+                case "inventorylist":
+                    HandleInventoryListCommand(engine, args.Length > 1 ? string.Join(" ", args.Skip(1)) : "");
+                    break;
+
+                case "inventoryspawn":
+                    if (args.Length < 2)
+                    {
+                        Console.WriteLine("Usage: inventorySpawn <path>  (e.g. inventorySpawn Objects/My Tool)");
+                        break;
+                    }
+                    HandleInventorySpawnCommand(engine, string.Join(" ", args.Skip(1)));
                     break;
 
                 case "exit":
@@ -1005,6 +1020,110 @@ public class Program
         Console.WriteLine($"Importing '{Path.GetFileName(path)}'...");
         FrooxEngine.UniversalImporter.Import(path, world, spawnPos, headRot, silent: true);
         Console.WriteLine($"Import requested. The asset will appear in front of you.");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleInventoryListCommand(FrooxEngine.Engine engine, string path)
+    {
+        if (engine.Cloud.InventoryRootDirectory == null)
+        {
+            Console.WriteLine("Not logged in.");
+            return;
+        }
+        Task.Run(async () =>
+        {
+            FrooxEngine.RecordDirectory dir = engine.Cloud.InventoryRootDirectory;
+            if (!string.IsNullOrEmpty(path))
+            {
+                foreach (string segment in path.Split('/'))
+                {
+                    await dir.EnsureFullyLoaded();
+                    var sub = dir.Subdirectories.FirstOrDefault(d =>
+                        string.Equals(d.Name, segment, StringComparison.OrdinalIgnoreCase));
+                    if (sub == null)
+                    {
+                        Console.WriteLine($"Directory not found: {segment}");
+                        return;
+                    }
+                    dir = sub;
+                }
+            }
+            await dir.EnsureFullyLoaded();
+            Console.WriteLine($"\n[Inventory: /{path}]");
+            foreach (var subdir in dir.Subdirectories)
+                Console.WriteLine($"  [DIR] {subdir.Name}");
+            foreach (var record in dir.Records)
+                Console.WriteLine($"  [OBJ] {record.Name}");
+            if (!dir.Subdirectories.Any() && !dir.Records.Any())
+                Console.WriteLine("  (empty)");
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleInventorySpawnCommand(FrooxEngine.Engine engine, string itemPath)
+    {
+        if (engine.Cloud.InventoryRootDirectory == null)
+        {
+            Console.WriteLine("Not logged in.");
+            return;
+        }
+        var world = engine.WorldManager.FocusedWorld;
+        if (world == null || world == FrooxEngine.Userspace.UserspaceWorld)
+        {
+            Console.WriteLine("No world focused. Use 'focus' to select a session.");
+            return;
+        }
+        Task.Run(async () =>
+        {
+            // パスをディレクトリ部分とアイテム名に分割
+            var segments = itemPath.Split('/');
+            var itemName = segments.Last();
+            var dirSegments = segments.Take(segments.Length - 1).ToArray();
+
+            FrooxEngine.RecordDirectory dir = engine.Cloud.InventoryRootDirectory;
+            foreach (string segment in dirSegments)
+            {
+                await dir.EnsureFullyLoaded();
+                var sub = dir.Subdirectories.FirstOrDefault(d =>
+                    string.Equals(d.Name, segment, StringComparison.OrdinalIgnoreCase));
+                if (sub == null)
+                {
+                    Console.WriteLine($"Directory not found: {segment}");
+                    return;
+                }
+                dir = sub;
+            }
+            await dir.EnsureFullyLoaded();
+
+            var record = dir.Records.FirstOrDefault(r =>
+                string.Equals(r.Name, itemName, StringComparison.OrdinalIgnoreCase));
+            if (record == null)
+            {
+                Console.WriteLine($"Item not found: {itemName}");
+                return;
+            }
+
+            Console.WriteLine($"Spawning: {record.Name}...");
+            world.RunSynchronously(() =>
+            {
+                if (!FrooxEngine.WorldPermissionsExtensoins.CanSpawnObjects(world))
+                {
+                    Console.WriteLine("Cannot spawn objects in this world (permission denied).");
+                    return;
+                }
+                FrooxEngine.Slot s = world.RootSlot.LocalUserSpace.AddSlot("InventorySpawn");
+                s.StartTask(async delegate
+                {
+                    await default(FrooxEngine.ToWorld);
+                    await s.LoadObjectAsync(record);
+                    var list = Elements.Core.Pool.BorrowList<FrooxEngine.Slot>();
+                    FrooxEngine.SlotPositioning.PositionInFrontOfUser(s, offset: Elements.Core.float3.Down * 0.2f, distance: 0.5f);
+                    s = s.GetComponent<FrooxEngine.InventoryItem>()?.Unpack(keepExistingPosition: false, list) ?? s;
+                    Elements.Core.Pool.Return(ref list);
+                    Console.WriteLine($"Spawned: {s.Name}");
+                });
+            });
+        });
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
