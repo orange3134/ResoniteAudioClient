@@ -126,6 +126,8 @@ public class Program
         Console.WriteLine("  leave                            - Leave current session");
         Console.WriteLine("  login <user> <password>          - Login to Resonite");
         Console.WriteLine("  logout                           - Logout from Resonite");
+        Console.WriteLine("  audioInputDevice [index]         - List or switch audio input devices");
+        Console.WriteLine("  audioOutputDevice [index]        - List or switch audio output devices");
         Console.WriteLine("  mute                             - Toggle microphone mute");
         Console.WriteLine("  voiceMode [mode]                 - Show or set voice mode (Normal/Shout/Broadcast/Whisper/Mute)");
         Console.WriteLine("  import <path>                    - Import an asset file into the current session");
@@ -350,6 +352,14 @@ public class Program
 
                 case "logout":
                     HandleLogoutCommand(engine);
+                    break;
+
+                case "audioinputdevice":
+                    HandleAudioInputDeviceCommand(engine, args);
+                    break;
+
+                case "audiooutputdevice":
+                    HandleAudioOutputDeviceCommand(engine, args);
                     break;
 
                 case "mute":
@@ -706,6 +716,115 @@ public class Program
                 Console.WriteLine($"Logout error: {ex.Message}");
             }
         });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleAudioInputDeviceCommand(FrooxEngine.Engine engine, string[] args)
+    {
+        var inputs = engine.AudioSystem.AudioInputs;
+        if (inputs.Count == 0)
+        {
+            Console.WriteLine("No audio input devices found.");
+            return;
+        }
+
+        if (args.Length < 2)
+        {
+            // リスト表示
+            int currentIndex = engine.AudioSystem.DefaultAudioInputIndex;
+            string currentName = (currentIndex >= 0 && currentIndex < inputs.Count) ? inputs[currentIndex].Name : "System Default";
+            Console.WriteLine($"\n--- Audio Input Devices (current: {currentName}) ---");
+            string systemDefaultTag = (currentIndex < 0) ? " [ACTIVE]" : "";
+            Console.WriteLine($"  0. System Default{systemDefaultTag}");
+            for (int i = 0; i < inputs.Count; i++)
+            {
+                var input = inputs[i];
+                string defaultTag = (i == currentIndex) ? " [ACTIVE]" : "";
+                string connTag = input.IsConnected ? "" : " [DISCONNECTED]";
+                string typeTag = input.InputType == FrooxEngine.AudioInputType.CaptureDevice ? "" : $" ({input.InputType})";
+                Console.WriteLine($"  {i + 1}. {input.Name}{defaultTag}{connTag}{typeTag}");
+            }
+            Console.WriteLine("---");
+            Console.WriteLine("Usage: audioInputDevice <index>");
+            return;
+        }
+
+        if (!int.TryParse(args[1], out int userIndex) || userIndex < 0 || userIndex > inputs.Count)
+        {
+            Console.WriteLine($"Invalid index. Please specify a number between 0 and {inputs.Count}.");
+            return;
+        }
+
+        if (userIndex == 0)
+        {
+            engine.AudioSystem.DefaultAudioInputIndex = -1;
+            Console.WriteLine("Audio input switched to: System Default");
+            return;
+        }
+
+        int targetIndex = userIndex - 1;
+        var targetInput = inputs[targetIndex];
+        if (!targetInput.IsConnected)
+        {
+            Console.WriteLine($"Warning: Device '{targetInput.Name}' is currently disconnected.");
+        }
+
+        engine.AudioSystem.DefaultAudioInputIndex = targetIndex;
+        Console.WriteLine($"Audio input switched to: {targetInput.Name}");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleAudioOutputDeviceCommand(FrooxEngine.Engine engine, string[] args)
+    {
+        var outputs = engine.AudioSystem.AudioOutputs;
+        if (outputs.Count == 0)
+        {
+            Console.WriteLine("No audio output devices found.");
+            return;
+        }
+
+        if (args.Length < 2)
+        {
+            // リスト表示
+            int currentIndex = engine.AudioSystem.DefaultAudioOutputIndex;
+            string currentName = (currentIndex >= 0 && currentIndex < outputs.Count) ? outputs[currentIndex].Name : "System Default";
+            Console.WriteLine($"\n--- Audio Output Devices (current: {currentName}) ---");
+            string systemDefaultTag = (currentIndex < 0) ? " [ACTIVE]" : "";
+            Console.WriteLine($"  0. System Default{systemDefaultTag}");
+            for (int i = 0; i < outputs.Count; i++)
+            {
+                var output = outputs[i];
+                string defaultTag = (i == currentIndex) ? " [ACTIVE]" : "";
+                string connTag = output.IsConnected ? "" : " [DISCONNECTED]";
+                Console.WriteLine($"  {i + 1}. {output.Name}{defaultTag}{connTag}");
+            }
+            Console.WriteLine("---");
+            Console.WriteLine("Usage: audioOutputDevice <index>");
+            return;
+        }
+
+        if (!int.TryParse(args[1], out int userIndex) || userIndex < 0 || userIndex > outputs.Count)
+        {
+            Console.WriteLine($"Invalid index. Please specify a number between 0 and {outputs.Count}.");
+            return;
+        }
+
+        if (userIndex == 0)
+        {
+            engine.AudioSystem.DefaultAudioOutputIndex = -1;
+            Console.WriteLine("Audio output switched to: System Default");
+            return;
+        }
+
+        int targetIndex = userIndex - 1;
+        var targetOutput = outputs[targetIndex];
+        if (!targetOutput.IsConnected)
+        {
+            Console.WriteLine($"Warning: Device '{targetOutput.Name}' is currently disconnected.");
+        }
+
+        engine.AudioSystem.DefaultAudioOutputIndex = targetIndex;
+        Console.WriteLine($"Audio output switched to: {targetOutput.Name}");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

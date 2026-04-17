@@ -341,6 +341,50 @@ logout
 
 - ログインしていない場合はその旨が表示されます
 
+### `audioInputDevice [index]`
+
+オーディオ入力デバイス（マイク）を一覧表示または切り替えます。
+
+```
+audioInputDevice           # デバイス一覧を表示
+audioInputDevice 2         # インデックス2のデバイスに切り替え
+```
+
+出力例：
+```
+--- Audio Input Devices ---
+  1. Microphone (USB Audio Device) [ACTIVE]
+  2. Headset Microphone (Realtek Audio)
+  3. Desktop Microphone (loopback)  (OutputDevice)
+---
+```
+
+- 引数なしで実行すると利用可能なデバイス一覧を表示します
+- `[ACTIVE]` が現在使用中のデバイスです
+- `[DISCONNECTED]` のデバイスも表示されます（切り替えは可能ですが音声が取れない可能性があります）
+- `(OutputDevice)` は出力デバイスのループバック入力です
+
+### `audioOutputDevice [index]`
+
+オーディオ出力デバイス（スピーカー・ヘッドフォン）を一覧表示または切り替えます。
+
+```
+audioOutputDevice          # デバイス一覧を表示
+audioOutputDevice 1        # インデックス1のデバイスに切り替え
+```
+
+出力例：
+```
+--- Audio Output Devices ---
+  1. Speakers (Realtek Audio) [ACTIVE]
+  2. Headphones (USB Audio Device)
+  3. Digital Output (S/PDIF)
+---
+```
+
+- 引数なしで実行すると利用可能なデバイス一覧を表示します
+- `[ACTIVE]` が現在使用中のデバイスです
+
 ### `mute`
 
 マイクのミュート状態をトグル（切り替え）します。
