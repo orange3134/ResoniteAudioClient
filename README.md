@@ -419,6 +419,39 @@ voiceMode Mute
 
 - セッションに参加していない状態では使用できません
 
+### `volumes`
+
+全音量の現在値を一覧表示します。
+
+```
+volumes
+```
+
+出力例：
+```
+  masterVolume       : 75%
+  soundEffectVolume  : 100%
+  multimediaVolume   : 100%
+  voiceVolume        : 100%
+  uiVolume           : 100%
+```
+
+### `masterVolume [0-1]` / `soundEffectVolume [0-1]` / `multimediaVolume [0-1]` / `voiceVolume [0-1]` / `uiVolume [0-1]`
+
+各音量の現在値を表示または設定します。引数なしで現在値を表示し、`0`〜`1` の値を指定するとその値に設定します。
+
+```
+masterVolume           # 現在値を表示
+masterVolume 0.5       # 50%に設定
+soundEffectVolume 0.8
+multimediaVolume 1
+voiceVolume 0.7
+uiVolume 0.3
+```
+
+- 値は `0`（無音）〜 `1`（最大）の範囲で指定します
+- 小数点はドット区切りで指定します（例: `0.75`）
+
 ### `import <path>`
 
 任意のアセットファイルを現在のセッションにインポートします。ローカルユーザーの前方2mの位置にスポーンします。

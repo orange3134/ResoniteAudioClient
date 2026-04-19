@@ -130,6 +130,12 @@ public class Program
         Console.WriteLine("  audioOutputDevice [index]        - List or switch audio output devices");
         Console.WriteLine("  mute                             - Toggle microphone mute");
         Console.WriteLine("  voiceMode [mode]                 - Show or set voice mode (Normal/Shout/Broadcast/Whisper/Mute)");
+        Console.WriteLine("  volumes                          - Show all volume levels");
+        Console.WriteLine("  masterVolume [0-1]               - Show or set master volume");
+        Console.WriteLine("  soundEffectVolume [0-1]          - Show or set sound effect volume");
+        Console.WriteLine("  multimediaVolume [0-1]           - Show or set multimedia volume");
+        Console.WriteLine("  voiceVolume [0-1]                - Show or set voice volume");
+        Console.WriteLine("  uiVolume [0-1]                   - Show or set UI volume");
         Console.WriteLine("  import <path>                    - Import an asset file into the current session");
         Console.WriteLine("  inventoryList [path]             - List inventory directory (e.g. inventoryList Objects)");
         Console.WriteLine("  inventorySpawn <path>            - Spawn inventory item into current world (e.g. inventorySpawn Objects/My Tool)");
@@ -374,6 +380,30 @@ public class Program
 
                 case "voicemode":
                     HandleVoiceModeCommand(engine, args);
+                    break;
+
+                case "volumes":
+                    HandleVolumesCommand();
+                    break;
+
+                case "mastervolume":
+                    HandleVolumeCommand("masterVolume", args, s => s.MasterVolume);
+                    break;
+
+                case "soundeffectvolume":
+                    HandleVolumeCommand("soundEffectVolume", args, s => s.SoundEffectVolume);
+                    break;
+
+                case "multimediavolume":
+                    HandleVolumeCommand("multimediaVolume", args, s => s.MultimediaVolume);
+                    break;
+
+                case "voicevolume":
+                    HandleVolumeCommand("voiceVolume", args, s => s.VoiceVolume);
+                    break;
+
+                case "uivolume":
+                    HandleVolumeCommand("uiVolume", args, s => s.UserInterfaceVolume);
                     break;
 
                 case "import":
@@ -982,6 +1012,51 @@ public class Program
             localUser.VoiceMode = targetMode;
         });
         Console.WriteLine($"Voice mode set to: {targetMode}");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleVolumesCommand()
+    {
+        var s = FrooxEngine.Settings.GetActiveSetting<FrooxEngine.AudioVolumeSettings>();
+        if (s == null)
+        {
+            Console.WriteLine("Volume settings not available yet.");
+            return;
+        }
+        Console.WriteLine($"  masterVolume       : {s.MasterVolume.Value:P0}");
+        Console.WriteLine($"  soundEffectVolume  : {s.SoundEffectVolume.Value:P0}");
+        Console.WriteLine($"  multimediaVolume   : {s.MultimediaVolume.Value:P0}");
+        Console.WriteLine($"  voiceVolume        : {s.VoiceVolume.Value:P0}");
+        Console.WriteLine($"  uiVolume           : {s.UserInterfaceVolume.Value:P0}");
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HandleVolumeCommand(string name, string[] args, Func<FrooxEngine.AudioVolumeSettings, FrooxEngine.Sync<float>> selector)
+    {
+        var s = FrooxEngine.Settings.GetActiveSetting<FrooxEngine.AudioVolumeSettings>();
+        if (s == null)
+        {
+            Console.WriteLine("Volume settings not available yet.");
+            return;
+        }
+
+        if (args.Length < 2)
+        {
+            Console.WriteLine($"{name}: {selector(s).Value:P0}");
+            return;
+        }
+
+        if (!float.TryParse(args[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float value) || value < 0f || value > 1f)
+        {
+            Console.WriteLine($"Invalid value '{args[1]}'. Please specify a number between 0 and 1.");
+            return;
+        }
+
+        FrooxEngine.Settings.UpdateActiveSetting<FrooxEngine.AudioVolumeSettings>(setting =>
+        {
+            selector(setting).Value = value;
+        });
+        Console.WriteLine($"{name} set to {value:P0}");
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
