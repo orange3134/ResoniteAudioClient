@@ -1,30 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <Version>1.0.0</Version>
-    <Authors>orange</Authors>
+    <OutputType>Library</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <RepositoryUrl>https://github.com/orange3134/ResoniteAudioClient</RepositoryUrl>
-    <PackageId>net.orange.audioclient</PackageId>
-    <Product>AudioClient</Product>
-    <RootNamespace>AudioClient</RootNamespace>
+    <RootNamespace>AudioClient.Core</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Deterministic>true</Deterministic>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <CopyToGameFolder>true</CopyToGameFolder>
-    
+
     <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
-    <AppTargetDir>$(GamePath)</AppTargetDir>
   </PropertyGroup>
 
-  <!-- NuGet fallback stripped game references (optional, if local not found) -->
   <ItemGroup Condition="!Exists('$(GamePath)')">
     <PackageReference Include="Resonite.GameLibs" Version="2025.*" />
   </ItemGroup>
 
-  <!-- Local game references -->
   <ItemGroup Condition="Exists('$(GamePath)')">
     <Reference Include="FrooxEngine">
       <HintPath>$(GamePath)FrooxEngine.dll</HintPath>
@@ -58,19 +49,4 @@
     </Reference>
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\AudioClient.Core\AudioClient.Core.csproj" />
-  </ItemGroup>
-
-  <!-- Post-build copy to game folder -->
-  <Target Name="CopyAppToGame" AfterTargets="Build">
-    <ItemGroup>
-      <!-- Copy everything produced in the output directory (like .runtimeconfig.json, .exe, etc.) -->
-      <AppFiles Include="$(TargetDir)*" Exclude="$(TargetDir)*.pdb" />
-      <AppFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
-    </ItemGroup>
-    
-    <Copy SourceFiles="@(AppFiles)" DestinationFolder="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
-    <Message Text="Copied application files to $(AppTargetDir)" Importance="high" Condition="'$(CopyToGameFolder)' == 'true'" />
-  </Target>
 </Project>

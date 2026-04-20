@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             x:Class="AudioClient.GUI.Views.LoginPanel"
+             x:DataType="vm:LoginViewModel"
+             Background="#CC000000">
+
+    <Border Background="{StaticResource BrushBgLight}" CornerRadius="8" Padding="32"
+            MaxWidth="360" MaxHeight="320"
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            BoxShadow="0 8 32 0 #88000000">
+
+        <StackPanel Spacing="16">
+            <Grid>
+                <TextBlock Text="Sign In to Resonite" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                <Button Content="✕" Command="{Binding CloseCommand}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                        Padding="4" FontSize="14" />
+            </Grid>
+
+            <TextBox Text="{Binding Username}" Watermark="Username"
+                     Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                     IsEnabled="{Binding !IsLoggingIn}" />
+
+            <TextBox Text="{Binding Password}" Watermark="Password" PasswordChar="●"
+                     Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                     IsEnabled="{Binding !IsLoggingIn}" />
+
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource BrushRed}"
+                       FontSize="12" IsVisible="{Binding ErrorMessage, Converter={x:Static v:StringNotEmptyConverter.Instance}}"
+                       TextWrapping="Wrap" />
+
+            <Button Content="Sign In" Command="{Binding LoginCommand}"
+                    Background="{StaticResource BrushAccent}" Foreground="White"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Padding="0,8" CornerRadius="4"
+                    IsEnabled="{Binding !IsLoggingIn}" />
+        </StackPanel>
+    </Border>
+</UserControl>

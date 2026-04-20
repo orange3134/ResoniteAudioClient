@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             x:Class="AudioClient.GUI.Views.BrowseSessionsPanel"
+             x:DataType="vm:BrowseSessionsViewModel"
+             Background="{StaticResource BrushBgMid}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+        <!-- Header -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1" Padding="12,10">
+            <TextBlock Text="BROWSE SESSIONS" Foreground="{StaticResource BrushTextMuted}"
+                       FontSize="11" FontWeight="SemiBold" LetterSpacing="1" />
+        </Border>
+
+        <!-- Search + Refresh -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,6,6,4">
+            <TextBox Grid.Column="0" Text="{Binding SearchText}" Watermark="Search..."
+                     Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                     FontSize="12" Padding="6,4" CornerRadius="4" />
+            <Button Grid.Column="1" Content="⟳" Command="{Binding RefreshCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="16" Padding="6,2" Margin="4,0,0,0" VerticalAlignment="Center"
+                    ToolTip.Tip="Refresh" />
+        </Grid>
+
+        <!-- Session List -->
+        <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Sessions}" Margin="4,0,4,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BrowseSessionItemViewModel">
+                        <Button Classes="SessionItem"
+                                Command="{Binding $parent[ItemsControl].((vm:BrowseSessionsViewModel)DataContext).JoinCommand}"
+                                CommandParameter="{Binding}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" Padding="8,6" CornerRadius="4" Margin="0,1">
+                            <StackPanel Spacing="2">
+                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
+                                           FontSize="13" TextTrimming="CharacterEllipsis" />
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Grid.Column="0" Text="{Binding Host}"
+                                               Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Users}"
+                                               Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                                               Margin="4,0,0,0" />
+                                </Grid>
+                                <TextBlock Text="{Binding AccessLevel}" Foreground="{StaticResource BrushTextMuted}"
+                                           FontSize="10" />
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Loading indicator -->
+        <TextBlock Grid.Row="3" Text="Loading..." IsVisible="{Binding IsLoading}"
+                   Foreground="{StaticResource BrushTextMuted}" FontSize="12"
+                   HorizontalAlignment="Center" Margin="0,4" />
+
+    </Grid>
+</UserControl>

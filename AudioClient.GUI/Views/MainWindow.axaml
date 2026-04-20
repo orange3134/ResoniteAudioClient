@@ -1,0 +1,78 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+        xmlns:v="clr-namespace:AudioClient.GUI.Views"
+        x:Class="AudioClient.GUI.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="AudioClient"
+        Width="1160" Height="600"
+        MinWidth="800" MinHeight="400"
+        Background="{StaticResource BrushBgDark}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        SystemDecorations="Full">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Title bar -->
+        <Border Grid.Row="0" Background="{StaticResource BrushBgDark}" Height="32"
+                IsHitTestVisible="True"
+                PointerPressed="TitleBar_PointerPressed">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" Text="AudioClient" Foreground="{StaticResource BrushTextPrimary}"
+                           VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" IsHitTestVisible="False" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0"
+                            IsHitTestVisible="False">
+                    <TextBlock Text="{Binding CurrentUsername}" Foreground="{StaticResource BrushTextMuted}"
+                               FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                             Fill="{Binding IsLoggedIn, Converter={x:Static v:BoolToBrushConverter.Instance},
+                                   ConverterParameter='Green:TextMuted'}" />
+                </StackPanel>
+                <!-- Close button -->
+                <Button Grid.Column="2" Content="✕" Click="CloseButton_Click"
+                        Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                        Width="32" Height="32" Padding="0" FontSize="14"
+                        HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <!-- Main 4-column area -->
+        <Grid Grid.Row="1" ColumnDefinitions="200,200,*,200">
+
+            <!-- Far Left: Browse Sessions -->
+            <v:BrowseSessionsPanel Grid.Column="0" DataContext="{Binding BrowseSessions}" />
+
+            <!-- Left: Session List -->
+            <v:SessionListPanel Grid.Column="1" DataContext="{Binding SessionList}" />
+
+            <!-- Center: Session Detail / Loading -->
+            <Grid Grid.Column="2">
+                <!-- Loading overlay -->
+                <StackPanel IsVisible="{Binding !IsEngineReady}"
+                            HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                    <TextBlock Text="Initializing..." Foreground="{StaticResource BrushTextPrimary}"
+                               FontSize="18" HorizontalAlignment="Center" />
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextMuted}"
+                               FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
+                </StackPanel>
+
+                <!-- Session detail -->
+                <v:SessionDetailPanel IsVisible="{Binding IsEngineReady}"
+                                      DataContext="{Binding SessionDetail}" />
+
+                <!-- Login overlay -->
+                <v:LoginPanel IsVisible="{Binding Login.IsVisible}"
+                              DataContext="{Binding Login}" />
+            </Grid>
+
+            <!-- Right: Member List -->
+            <v:MemberListPanel Grid.Column="3" DataContext="{Binding MemberList}" />
+
+        </Grid>
+
+        <!-- Bottom: Status Bar -->
+        <v:StatusBarPanel Grid.Row="2" DataContext="{Binding StatusBar}" />
+
+    </Grid>
+</Window>

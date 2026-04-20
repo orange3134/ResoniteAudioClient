@@ -1,0 +1,45 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using Avalonia.Data.Converters;
+using Avalonia.Media;
+
+namespace AudioClient.GUI.Views;
+
+public class BoolToBrushConverter : IValueConverter
+{
+    public static readonly BoolToBrushConverter Instance = new();
+
+    private static readonly Dictionary<string, IBrush> _brushes = new()
+    {
+        ["Green"] = new SolidColorBrush(Color.Parse("#43b581")),
+        ["TextMuted"] = new SolidColorBrush(Color.Parse("#72767d")),
+        ["TextPrimary"] = new SolidColorBrush(Color.Parse("#dcddde")),
+        ["Accent"] = new SolidColorBrush(Color.Parse("#7289da")),
+        ["Red"] = new SolidColorBrush(Color.Parse("#f04747")),
+        ["Transparent"] = Brushes.Transparent,
+    };
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        bool boolValue = value is bool b && b;
+        string param = parameter as string ?? "Green:TextMuted";
+        var parts = param.Split(':');
+        string key = boolValue ? parts[0] : (parts.Length > 1 ? parts[1] : "TextPrimary");
+        return _brushes.GetValueOrDefault(key, Brushes.Transparent);
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public class StringNotEmptyConverter : IValueConverter
+{
+    public static readonly StringNotEmptyConverter Instance = new();
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => !string.IsNullOrEmpty(value as string);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

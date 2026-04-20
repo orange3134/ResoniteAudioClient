@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             x:Class="AudioClient.GUI.Views.SessionDetailPanel"
+             x:DataType="vm:SessionDetailViewModel"
+             Background="{StaticResource BrushBgLight}">
+
+    <Grid>
+        <!-- No session placeholder -->
+        <StackPanel IsVisible="{Binding !HasSession}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+            <TextBlock Text="No session focused" Foreground="{StaticResource BrushTextMuted}"
+                       FontSize="16" HorizontalAlignment="Center" />
+            <TextBlock Text="Join or start a session from the left panel"
+                       Foreground="{StaticResource BrushTextMuted}" FontSize="12" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Session info -->
+        <StackPanel IsVisible="{Binding HasSession}" Margin="20,20" Spacing="12">
+
+            <!-- Session Name (editable) -->
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" IsVisible="{Binding !IsEditingName}">
+                    <TextBlock Text="{Binding SessionName}" Foreground="{StaticResource BrushTextPrimary}"
+                               FontSize="22" FontWeight="SemiBold" />
+                </StackPanel>
+                <Grid Grid.Column="0" IsVisible="{Binding IsEditingName}" ColumnDefinitions="*,Auto,Auto">
+                    <TextBox Grid.Column="0" Text="{Binding EditNameValue}" Watermark="Session name..."
+                             Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}" />
+                    <Button Grid.Column="1" Content="✓" Command="{Binding CommitNameCommand}"
+                            Background="{StaticResource BrushAccent}" Foreground="White" Margin="4,0,0,0" />
+                    <Button Grid.Column="2" Content="✕" Command="{Binding CancelEditNameCommand}"
+                            Background="Transparent" Foreground="{StaticResource BrushTextMuted}" Margin="4,0,0,0" />
+                </Grid>
+                <Button Grid.Column="1" Content="✏" Command="{Binding BeginEditNameCommand}"
+                        IsVisible="{Binding IsHost}"
+                        Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                        ToolTip.Tip="Rename session" />
+            </Grid>
+
+            <!-- Info row -->
+            <WrapPanel Orientation="Horizontal">
+                <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="Access:" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                        <TextBlock Text="{Binding AccessLevel}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                    </StackPanel>
+                </Border>
+                <Border Background="{StaticResource BrushAccent}" CornerRadius="4" Padding="8,4"
+                        IsVisible="{Binding IsHost}">
+                    <TextBlock Text="HOST" Foreground="White" FontSize="11" FontWeight="SemiBold" />
+                </Border>
+            </WrapPanel>
+
+            <!-- Access Level Buttons (host only) -->
+            <StackPanel IsVisible="{Binding IsHost}" Spacing="4">
+                <TextBlock Text="Access Level" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                <WrapPanel Orientation="Horizontal">
+                    <Button Content="Private" Command="{Binding SetAccessLevelCommand}" CommandParameter="Private"
+                            Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                            Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
+                    <Button Content="Contacts" Command="{Binding SetAccessLevelCommand}" CommandParameter="Contacts"
+                            Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                            Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
+                    <Button Content="ContactsPlus" Command="{Binding SetAccessLevelCommand}" CommandParameter="ContactsPlus"
+                            Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                            Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
+                    <Button Content="Anyone" Command="{Binding SetAccessLevelCommand}" CommandParameter="Anyone"
+                            Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                            Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
+                </WrapPanel>
+            </StackPanel>
+
+            <!-- Leave button -->
+            <Button Content="Leave Session" Command="{Binding LeaveCommand}"
+                    Background="{StaticResource BrushRed}" Foreground="White"
+                    HorizontalAlignment="Left" Padding="12,6" CornerRadius="4" />
+        </StackPanel>
+    </Grid>
+</UserControl>

@@ -1,0 +1,33 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AudioClient.GUI.App"
+             RequestedThemeVariant="Dark">
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+
+    <Application.Resources>
+        <!-- Discord-like dark palette -->
+        <Color x:Key="BgDark">#1e2124</Color>
+        <Color x:Key="BgMid">#282b30</Color>
+        <Color x:Key="BgLight">#36393e</Color>
+        <Color x:Key="BgHover">#3d4249</Color>
+        <Color x:Key="Accent">#7289da</Color>
+        <Color x:Key="TextPrimary">#dcddde</Color>
+        <Color x:Key="TextMuted">#72767d</Color>
+        <Color x:Key="Green">#43b581</Color>
+        <Color x:Key="Yellow">#faa61a</Color>
+        <Color x:Key="Red">#f04747</Color>
+
+        <SolidColorBrush x:Key="BrushBgDark" Color="{StaticResource BgDark}" />
+        <SolidColorBrush x:Key="BrushBgMid" Color="{StaticResource BgMid}" />
+        <SolidColorBrush x:Key="BrushBgLight" Color="{StaticResource BgLight}" />
+        <SolidColorBrush x:Key="BrushBgHover" Color="{StaticResource BgHover}" />
+        <SolidColorBrush x:Key="BrushAccent" Color="{StaticResource Accent}" />
+        <SolidColorBrush x:Key="BrushTextPrimary" Color="{StaticResource TextPrimary}" />
+        <SolidColorBrush x:Key="BrushTextMuted" Color="{StaticResource TextMuted}" />
+        <SolidColorBrush x:Key="BrushGreen" Color="{StaticResource Green}" />
+        <SolidColorBrush x:Key="BrushYellow" Color="{StaticResource Yellow}" />
+        <SolidColorBrush x:Key="BrushRed" Color="{StaticResource Red}" />
+    </Application.Resources>
+</Application>

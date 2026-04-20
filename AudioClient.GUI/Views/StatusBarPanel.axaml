@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             x:Class="AudioClient.GUI.Views.StatusBarPanel"
+             x:DataType="vm:StatusBarViewModel"
+             Background="{StaticResource BrushBgDark}"
+             Height="52">
+
+    <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="12,0">
+
+        <!-- Login button (rightmost) -->
+        <Button Grid.Column="3" Content="Sign In"
+                Command="{Binding ShowLoginCommand}"
+                Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                FontSize="12" Padding="8,4" VerticalAlignment="Center"
+                ToolTip.Tip="Sign in to Resonite" />
+
+        <!-- Mute button -->
+        <Button Grid.Column="0" Content="{Binding MuteButtonText}"
+                Command="{Binding ToggleMuteCommand}"
+                Background="Transparent"
+                Foreground="{Binding IsMuted, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Red:TextPrimary'}"
+                FontSize="18" Padding="6" VerticalAlignment="Center"
+                ToolTip.Tip="Toggle Mute" />
+
+        <!-- Volume Slider -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="8,0">
+            <TextBlock Text="🔊" FontSize="14" VerticalAlignment="Center"
+                       Foreground="{StaticResource BrushTextMuted}" />
+            <Slider Value="{Binding MasterVolume}" Minimum="0" Maximum="1"
+                    Width="100" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding MasterVolume, StringFormat={}{0:P0}}"
+                       Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
+
+    </Grid>
+</UserControl>
