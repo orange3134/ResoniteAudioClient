@@ -59,9 +59,7 @@ public class EngineHost : IDisposable
         options.OutputDevice = HeadOutputDevice.Screen;
 
         if (string.IsNullOrEmpty(options.DataDirectory))
-            options.DataDirectory = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "..", "LocalLow", "Yellow Dog Man Studios", "Resonite");
+            options.DataDirectory = Path.Combine(appDir, "DataPath");
         if (string.IsNullOrEmpty(options.CacheDirectory))
             options.CacheDirectory = Path.Combine(Path.GetTempPath(), "Yellow Dog Man Studios", "Resonite");
         options.LocaleDirectory = Path.Combine(engineDir, "Locale");

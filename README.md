@@ -1,5 +1,12 @@
 # AudioClient
 
+## GUI startup behavior
+
+- `AudioClient.GUI` can be placed in any directory.
+- On first launch, the GUI looks for Resonite in Steam's default install location.
+- If Resonite is not found there, the app prompts the user to choose the install directory and saves that path for future launches.
+- If `-DataPath` is not specified, the default data path is `./DataPath` relative to the app directory so it can run alongside a normal Resonite install more safely.
+
 Resoniteの音声専用ヘッドレスクライアントです。GUIなしでコンソールからResoniteセッションに参加し、音声処理を行うことができます。
 
 ## コマンド一覧

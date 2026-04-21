@@ -1,0 +1,82 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+        xmlns:v="clr-namespace:AudioClient.GUI.Views"
+        x:Class="AudioClient.GUI.Views.ResonitePathPromptWindow"
+        x:DataType="vm:ResonitePathPromptViewModel"
+        Title="AudioClient Setup"
+        Width="560" Height="320"
+        MinWidth="520" MinHeight="300"
+        Background="{StaticResource BrushBgDark}"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen">
+
+    <Border Padding="24">
+        <StackPanel Spacing="16">
+            <StackPanel Spacing="6">
+                <TextBlock Text="Resonite installation required"
+                           Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="22"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding HelperMessage}"
+                           Foreground="{StaticResource BrushTextMuted}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="Resonite install directory"
+                           Foreground="{StaticResource BrushTextPrimary}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding InstallPath}"
+                             Watermark="C:\Program Files (x86)\Steam\steamapps\common\Resonite"
+                             Background="{StaticResource BrushBgMid}"
+                             Foreground="{StaticResource BrushTextPrimary}"
+                             IsEnabled="{Binding !IsBusy}"
+                             Margin="0,0,8,0" />
+                    <Button Grid.Column="1"
+                            Content="Browse..."
+                            Command="{Binding BrowseCommand}"
+                            Background="{StaticResource BrushBgLight}"
+                            Foreground="{StaticResource BrushTextPrimary}"
+                            Padding="14,8"
+                            IsEnabled="{Binding !IsBusy}" />
+                </Grid>
+            </StackPanel>
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource BrushRed}"
+                       TextWrapping="Wrap"
+                       IsVisible="{Binding ErrorMessage, Converter={x:Static v:StringNotEmptyConverter.Instance}}" />
+
+            <TextBlock Text="この設定は保存され、次回以降は自動で再利用されます。"
+                       Foreground="{StaticResource BrushTextMuted}"
+                       FontSize="12" />
+
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                <Button Grid.Column="0"
+                        Content="Use Steam Path"
+                        Command="{Binding UseDetectedPathCommand}"
+                        Background="Transparent"
+                        Foreground="{StaticResource BrushTextMuted}"
+                        IsEnabled="{Binding !IsBusy}"
+                        Margin="0,0,8,0" />
+                <Button Grid.Column="2"
+                        Content="Exit"
+                        Command="{Binding CancelCommand}"
+                        Background="Transparent"
+                        Foreground="{StaticResource BrushTextMuted}"
+                        Padding="14,8"
+                        IsEnabled="{Binding !IsBusy}"
+                        Margin="0,0,8,0" />
+                <Button Grid.Column="3"
+                        Content="Continue"
+                        Command="{Binding SaveCommand}"
+                        Background="{StaticResource BrushAccent}"
+                        Foreground="White"
+                        Padding="18,8"
+                        IsEnabled="{Binding !IsBusy}" />
+            </Grid>
+        </StackPanel>
+    </Border>
+</Window>

@@ -127,3 +127,8 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 ### 起動オプション (`LaunchOptions`)
 - `LaunchOptions.GetLaunchOptions(args)` は `-DataPath`/`-Data`、`-CachePath`/`-Cache`、`-LogsPath` などを自動パース
 - デフォルト値は `string.IsNullOrEmpty(options.DataDirectory)` で未指定確認してから代入（コマンドライン引数を上書きしない）
+
+## GUI 配布時の注意
+- GUI は任意ディレクトリ配置を前提にし、FrooxEngine の探索先は「保存済み設定 → Steam の既定インストール先 → アプリ隣接の Resonite フォルダ候補」の順で解決する
+- 保存済みパスが無効だったり Steam 既定パスに Resonite が無い場合は、GUI でユーザーにインストール先フォルダを選ばせて保存する
+- `-DataPath` 未指定時の既定値は通常の LocalLow ではなく `アプリ配置先/DataPath` にする。これで通常の Resonite と同時起動してもデータ競合しにくい
