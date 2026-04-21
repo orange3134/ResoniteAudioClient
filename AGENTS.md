@@ -1,0 +1,126 @@
+# 概要
+ResoniteのFrooxEngineをUnityの描画エンジンなしで起動し、セッションに参加して空間オーディオをリアルタイム再生するクライアントです。
+CLIとGUIの2つの実行ファイルがあり、共通エンジンロジックを `AudioClient.Core` ライブラリで共有しています。
+
+```
+AudioClient.sln
+├── AudioClient.Core/   ← エンジン操作ロジック（classlib）
+├── AudioClient/        ← CLIクライアント
+└── AudioClient.GUI/    ← AvaloniaベースのGUIクライアント
+```
+
+# 開発
+FrooxEngineをデコンパイルしたコードが `./reso-decompile` にあります。必要に応じて参照してください。
+
+# ドキュメントの整理
+新しいコマンドを実装したり、既存のコマンドを修正したりした場合は、コマンドの使い方をREADME.mdにまとめてください。
+
+# AGENTS.mdの更新
+開発中にノウハウや留意点が見つかった場合は、該当するAGENTS.mdに追記してください（全体共通なら本ファイル、CLI固有なら `AudioClient/AGENTS.md`、GUI固有なら `AudioClient.GUI/AGENTS.md`）。
+
+---
+
+# FrooxEngine 共通知識
+
+## アーキテクチャ上の重要な判断
+
+### MODではなくスタンドアロンexeにした理由
+ResoniteModLoader (RML) を経由するMOD形式ではなく、スタンドアロンの .NET 10.0 exe として構築しています。理由：
+- MODはUnityのGameObject/MonoBehaviour基盤の上で動くため、Unity描画エンジンを避けられない
+- `FrooxEngine.dll` は .NET Standard 2.1 互換であり、Unity外から直接参照可能
+- スタンドアロンにすることで、Unity依存を完全に排除しCPU/メモリ使用を最小化できる
+
+### HeadOutputDevice は `Screen` にすること
+`HeadOutputDevice.Headless` を指定すると、エンジンは「画面なし・音なし・入力なしのサーバー用途」と判断し、以下を**すべてスキップ**します：
+- CSCore オーディオドライバの初期化
+- AudioListener の付与（＝「耳」がないので音を拾えない）
+- DesktopUserRoot の構築（通常のデスクトッププレイヤーとしてのアバター構成）
+
+**`HeadOutputDevice.Screen` を指定する**ことで、描画をしなくても「通常のデスクトップクライアント」として扱われ、音声パイプラインが全て有効になります。`useRenderer: false` は別フラグなので、Screen指定でもGUIウィンドウは立ちません。
+
+## アセンブリ読み込みの注意点
+
+### AssemblyResolve ハンドラの配置場所
+`AppDomain.CurrentDomain.AssemblyResolve` ハンドラは **`Main` メソッド内で、FrooxEngineの型を一切参照する前に** 登録する必要があります。.NET の JIT コンパイラはメソッド単位で型を解決するため、`Main` 自体に `FrooxEngine.Engine` 等の型参照があると、ハンドラ登録前にアセンブリ解決が走ってクラッシュします。
+
+**対策：** FrooxEngineを使う全コードを `[MethodImpl(MethodImplOptions.NoInlining)]` を付けた別メソッドに分離し、`Main` → `[NoInlining]メソッド` の呼び出し構造にします。CLIは `RunEngine()`、GUIは `StartGui()` がその境界です。
+
+### 全DLLのプリロードが必須
+起動時に `Assembly.LoadFrom()` でアプリケーションディレクトリ内の全 `.dll` をプリロードしています。これがないと、エンジンの型スキャナが `Awwdio`, `PhotonDust` 等の Data Model Assembly を登録できず、セッション参加時に `CompatibilityError` が発生します。
+
+プリロードで `BadImageFormatException`（ネイティブDLL）や一部の読み込みエラーが出ますが、これらは無害なので `catch` でスキップしています。
+
+### ネイティブDLLのPATH追加
+SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/` に格納されています。.NET のデフォルトでは探索パスに含まれないため、起動直後に `Environment.SetEnvironmentVariable("PATH", ...)` で追加する必要があります。
+
+## csproj の設定
+
+### FrooxEngine 参照の書き方
+```xml
+<Reference Include="FrooxEngine">
+  <HintPath>$(GamePath)FrooxEngine.dll</HintPath>
+  <Private>false</Private>
+  <SpecificVersion>false</SpecificVersion>
+</Reference>
+```
+- `Private=false` — ビルド出力にResoniteのDLLをコピーしない（ゲームフォルダに既にあるものを使う）
+- `SpecificVersion=false` — ビルド時にバージョン完全一致を要求しない（ランタイムの照合は `AssemblyResolve` で対応）
+
+### PostBuild のコピー先
+各プロジェクトのビルド成果物は `$(GamePath)`（Resoniteインストールフォルダ）に自動コピーされます。`.pdb` は除外（`AudioClient.exe` の `.pdb` のみ含める）。
+
+## セッション互換性チェックの仕組み
+エンジンはセッション参加時に以下を照合します：
+1. `SystemCompatibilityHash` — 全アセンブリの型定義から算出した全体ハッシュ
+2. 各 Data Model Assembly の `CompatibilityHash` — アセンブリ内の型のフィールド・メソッド構造のMD5ハッシュ
+
+**同じバージョンのResonite**を使っている限り、これらは一致します。異なるバージョン間では参加できません（これはResoniteの仕様です）。
+
+## FrooxEngine API リファレンス
+
+### スレッド安全性
+`FrooxEngine` 内のノード（`world.LocalUser` やコンポーネント）のプロパティを変更する際は、必ず **`world.RunSynchronously(() => { ... })`** 内で行ってください。さもないと `Modifications from a non-locking thread are disallowed!` というエラーが発生します（例外: `engine.AudioSystem` のようなグローバルマネージャーはスレッドセーフな場合があります）。
+
+### クラウド・セッション管理 (`engine.Cloud`)
+- **ログイン**: `engine.Cloud.Session.Login(username, new PasswordLogin(password), secretMachineId, rememberMe: true, totp: null)`
+- **ログアウト**: `engine.Cloud.Session.Logout(isManual: true)`
+- **セッション一覧**: `engine.Cloud.Sessions.GetSessions(List<SessionInfo>)`
+
+### ワールド・フォーカス管理 (`engine.WorldManager`)
+- **現在参加中のワールド一覧**: `engine.WorldManager.Worlds`
+- **ワールド切り替え（フォーカス）**: `engine.WorldManager.FocusWorld(World)`
+
+### セッションへの参加 (`Userspace.JoinSession`)
+- `Userspace.JoinSession(IEnumerable<Uri>)` の複数URL版を優先して使う（LNL → Steam の優先度順で試みるため接続成功率が上がる）
+- `res-steam://` URLはSteam P2Pを使うためヘッドレス環境では動作しません。`SessionInfo.GetSessionURLs()` で全URLを取得し `lnl-nat://` を優先してください
+- `SessionInfo.GetSessionURLs()` は `List<Uri>` を返し、無効なURLを自動で除外します
+
+### セッションの開始
+- レコードURLから: `Userspace.OpenWorld(new WorldStartSettings(uri))`（非同期）
+- 組み込みテンプレートから: `Userspace.StartSession(preset.Method)`（同期）。プリセットは `WorldPresets.Presets` で列挙
+- `Userspace.StartSession` の引数に `FrooxEngine.Store.Record` 型が含まれるため、csprojに `FrooxEngine.Store.dll` の参照追加が必要
+
+### セッション設定の変更
+- `world.Name = "..."` と `world.AccessLevel = SessionAccessLevel.Contacts` のセッターは内部で `RunSynchronously` を呼ぶためスレッドセーフ
+- `world.AllowUserToJoin(userId)` はデータモデルの変更なので `world.RunSynchronously()` でラップが必要
+
+### コンタクト・招待管理 (`engine.Cloud.Contacts` / `engine.Cloud.Messages`)
+- **コンタクト一覧**: `engine.Cloud.Contacts.ForeachContactData(Action<ContactData>)`
+- **オンライン状態**: `ContactData.CurrentStatus.OnlineStatus`（`SkyFrost.Base.OnlineStatus`: Offline/Invisible/Away/Busy/Online/Sociable）
+- **コンタクトの現在セッション**: `ContactData.CurrentSessionInfo`（プライベートや不可視は `null`）
+- **`UserSessionMetadata`にセッション名は含まれません** — プライバシー設計によりアクセスレベル・IsHost・SessionHiddenのみ保持
+- **招待送信**: `engine.Cloud.Messages.GetUserMessages(userId).SendInviteMessage(sessionInfo)`。事前に `world.GenerateSessionInfo()` が必要
+
+### アバター・ロコモーション操作
+- ロコモーションモジュールは `world.LocalUser.Root.Slot` の下層（`Locomotion Modules`）に構築
+- `GetComponentInChildren<T>()` でコンポーネントを検索
+- `ILocomotionModule.LocomotionName` は `LocaleString` 構造体（値型）なので `?.` は使えない
+
+### ユーザー位置情報 (`UserRoot`)
+- `user.Root.HeadPosition` → `float3`（ワールド空間XYZ）
+- `user.Root.HeadFacingRotation` → `floatQ`（クォータニオン）。`.EulerAngles.y` でY軸回転（度）
+- `floatQ.EulerAngles` は `float3`、単位は度（ラジアンではない）
+
+### 起動オプション (`LaunchOptions`)
+- `LaunchOptions.GetLaunchOptions(args)` は `-DataPath`/`-Data`、`-CachePath`/`-Cache`、`-LogsPath` などを自動パース
+- デフォルト値は `string.IsNullOrEmpty(options.DataDirectory)` で未指定確認してから代入（コマンドライン引数を上書きしない）

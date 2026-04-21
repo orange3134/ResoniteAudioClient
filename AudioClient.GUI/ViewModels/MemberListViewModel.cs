@@ -24,6 +24,7 @@ public partial class MemberItemViewModel : ObservableObject
     public string IconLetter => UserName.Length > 0 ? UserName[0].ToString().ToUpperInvariant() : "?";
 
     [ObservableProperty] private Bitmap? _iconBitmap;
+    [ObservableProperty] private bool _isSpeaking;
 
     public MemberItemViewModel(UserInfo u, Func<string, Task<string?>>? fetchIcon)
     {
@@ -55,10 +56,29 @@ public partial class MemberListViewModel : ObservableObject
 
     public void Update(List<UserInfo> users)
     {
+        var prevSpeaking = Members.Where(m => m.UserId != null && m.IsSpeaking)
+                                  .Select(m => m.UserId!)
+                                  .ToHashSet();
         Members.Clear();
         foreach (var u in users)
-            Members.Add(new MemberItemViewModel(u, FetchIconUrl));
+        {
+            var vm = new MemberItemViewModel(u, FetchIconUrl);
+            if (u.UserId != null && prevSpeaking.Contains(u.UserId))
+                vm.IsSpeaking = true;
+            Members.Add(vm);
+        }
         MemberCount = users.Count;
+    }
+
+    public void UpdateSpeaking(Dictionary<string, bool> speaking)
+    {
+        foreach (var member in Members)
+        {
+            if (member.UserId != null && speaking.TryGetValue(member.UserId, out var isSpeaking))
+                member.IsSpeaking = isSpeaking;
+            else
+                member.IsSpeaking = false;
+        }
     }
 
     [RelayCommand]

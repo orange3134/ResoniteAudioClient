@@ -60,6 +60,9 @@
                                         IsVisible="{Binding IconBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
                                     <Image Source="{Binding IconBitmap}" Stretch="UniformToFill" />
                                 </Border>
+                                <!-- Speaking indicator: green ring around icon -->
+                                <Border CornerRadius="11" BorderBrush="#43b581" BorderThickness="2"
+                                        IsVisible="{Binding IsSpeaking}" />
                                 <!-- Status dot: bottom-right overlay -->
                                 <Border Width="8" Height="8" CornerRadius="4"
                                         HorizontalAlignment="Right" VerticalAlignment="Bottom"

@@ -79,6 +79,8 @@ public partial class MainViewModel : ObservableObject
                 });
             host.Users.UsersChanged += (_, users) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => MemberList.Update(users));
+            host.Users.SpeakingChanged += (_, speaking) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => MemberList.UpdateSpeaking(speaking));
             host.Users.VoiceModeChanged += (_, mode) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.CurrentVoiceMode = mode ?? "Normal");
             host.Audio.MuteChanged += (_, muted) =>
