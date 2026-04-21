@@ -9,6 +9,7 @@ namespace AudioClient.GUI;
 public partial class App : Application
 {
     public static string AppDir { get; set; } = string.Empty;
+    public static string EngineDir { get; set; } = string.Empty;
     public static string[] LaunchArgs { get; set; } = [];
 
     public override void Initialize()
@@ -20,7 +21,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var vm = new MainViewModel(AppDir, LaunchArgs);
+            var vm = new MainViewModel(AppDir, EngineDir, LaunchArgs);
             var window = new MainWindow { DataContext = vm };
             desktop.MainWindow = window;
         }

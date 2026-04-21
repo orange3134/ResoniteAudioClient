@@ -10,7 +10,8 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
     <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
-    <AppTargetDir>$(GamePath)</AppTargetDir>
+    <AppDeployDirName>AudioClient</AppDeployDirName>
+    <AppTargetDir>$(GamePath)$(AppDeployDirName)\</AppTargetDir>
     <CopyToGameFolder>true</CopyToGameFolder>
   </PropertyGroup>
 
@@ -71,6 +72,8 @@
       <!-- Avalonia native libs (SkiaSharp, HarfBuzz) — copy to runtimes folder already in PATH -->
       <NativeFiles Include="$(TargetDir)runtimes\win-x64\native\*" />
     </ItemGroup>
+    <MakeDir Directories="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
+    <MakeDir Directories="$(AppTargetDir)runtimes\win-x64\native\" Condition="'$(CopyToGameFolder)' == 'true'" />
     <Copy SourceFiles="@(AppFiles)" DestinationFolder="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
     <Copy SourceFiles="@(NativeFiles)" DestinationFolder="$(AppTargetDir)runtimes\win-x64\native\"
           Condition="'$(CopyToGameFolder)' == 'true'" />

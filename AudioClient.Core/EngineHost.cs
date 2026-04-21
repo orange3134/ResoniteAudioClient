@@ -43,6 +43,7 @@ public class EngineHost : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static async Task<EngineHost> StartAsync(
         string appDir,
+        string engineDir,
         string[] args,
         IEngineInitProgress? progress = null,
         Action<string>? logHandler = null)
@@ -63,7 +64,7 @@ public class EngineHost : IDisposable
                 "..", "LocalLow", "Yellow Dog Man Studios", "Resonite");
         if (string.IsNullOrEmpty(options.CacheDirectory))
             options.CacheDirectory = Path.Combine(Path.GetTempPath(), "Yellow Dog Man Studios", "Resonite");
-        options.LocaleDirectory = Path.Combine(appDir, "Locale");
+        options.LocaleDirectory = Path.Combine(engineDir, "Locale");
 
         var engine = new Engine();
         var systemInfo = new DummySystemInfo();
@@ -72,7 +73,7 @@ public class EngineHost : IDisposable
             msg => Elements.Core.UniLog.Log(msg),
             () => Elements.Core.UniLog.Log("Engine ready."));
 
-        await engine.Initialize(appDir, useRenderer: false, options, systemInfo, initProgress);
+        await engine.Initialize(engineDir, useRenderer: false, options, systemInfo, initProgress);
         Userspace.SetupUserspace(engine);
 
         return new EngineHost(engine);

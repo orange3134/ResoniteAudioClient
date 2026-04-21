@@ -67,7 +67,7 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 - `SpecificVersion=false` — ビルド時にバージョン完全一致を要求しない（ランタイムの照合は `AssemblyResolve` で対応）
 
 ### PostBuild のコピー先
-各プロジェクトのビルド成果物は `$(GamePath)`（Resoniteインストールフォルダ）に自動コピーされます。`.pdb` は除外（`AudioClient.exe` の `.pdb` のみ含める）。
+各プロジェクトのビルド成果物は `$(GamePath)AudioClient\` のような専用サブフォルダに自動コピーします。Resonite本体DLLは引き続きゲームフォルダ直下のものを使うため、サブフォルダ配置にした場合は `AssemblyResolve` と全DLLプリロードの探索先に **アプリフォルダと親のゲームフォルダの両方** を含める必要があります。加えて `engine.Initialize(...)` に渡すベースディレクトリはアプリフォルダではなく **親のResoniteゲームフォルダ** を使ってください。`RuntimeData\Local.bin` や `Locale\` はそこ基準で読まれるためです。`.pdb` は除外（`AudioClient.exe` の `.pdb` のみ含める）。
 
 ## セッション互換性チェックの仕組み
 エンジンはセッション参加時に以下を照合します：

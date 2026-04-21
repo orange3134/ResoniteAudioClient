@@ -31,7 +31,7 @@ public partial class MainViewModel : ObservableObject
     public SessionPreviewViewModel SessionPreview { get; }
     public UserInfoViewModel UserInfoPopup { get; }
 
-    public MainViewModel(string appDir, string[] args)
+    public MainViewModel(string appDir, string engineDir, string[] args)
     {
         SessionList = new SessionListViewModel();
         SessionDetail = new SessionDetailViewModel();
@@ -43,7 +43,7 @@ public partial class MainViewModel : ObservableObject
         SessionPreview = new SessionPreviewViewModel();
         UserInfoPopup = new UserInfoViewModel();
 
-        Task.Run(() => InitializeEngineAsync(appDir, args));
+        Task.Run(() => InitializeEngineAsync(appDir, engineDir, args));
     }
 
     [RelayCommand]
@@ -56,12 +56,12 @@ public partial class MainViewModel : ObservableObject
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private async Task InitializeEngineAsync(string appDir, string[] args)
+    private async Task InitializeEngineAsync(string appDir, string engineDir, string[] args)
     {
         try
         {
             var host = await EngineHost.StartAsync(
-                appDir, args,
+                appDir, engineDir, args,
                 progress: new AudioClient.Core.EngineInitProgress(
                     msg => UpdateStatus(msg),
                     msg => UpdateStatus(msg),

@@ -16,7 +16,8 @@
     <CopyToGameFolder>true</CopyToGameFolder>
     
     <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
-    <AppTargetDir>$(GamePath)</AppTargetDir>
+    <AppDeployDirName>AudioClient</AppDeployDirName>
+    <AppTargetDir>$(GamePath)$(AppDeployDirName)\</AppTargetDir>
   </PropertyGroup>
 
   <!-- NuGet fallback stripped game references (optional, if local not found) -->
@@ -70,6 +71,7 @@
       <AppFiles Include="$(TargetDir)$(TargetName).pdb" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
     </ItemGroup>
     
+    <MakeDir Directories="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
     <Copy SourceFiles="@(AppFiles)" DestinationFolder="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
     <Message Text="Copied application files to $(AppTargetDir)" Importance="high" Condition="'$(CopyToGameFolder)' == 'true'" />
   </Target>
