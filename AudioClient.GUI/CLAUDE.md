@@ -103,9 +103,11 @@ csprojのpost-buildで明示的にコピーする必要があります：
 
 ## ログインパネルの表示制御
 
-エンジン初期化完了時に `Login.IsVisible = !host.Auth.IsLoggedIn` を設定します（保存済みセッションで自動ログインされた場合はパネルを表示しない）。
+エンジン初期化完了時に `Login.IsVisible = !host.Auth.IsLoggedIn` と `Login.IsLoggedIn = host.Auth.IsLoggedIn` を設定します（保存済みセッションで自動ログインされた場合はパネルを表示しない）。
 
-ログアウト後の再ログインは StatusBar の "Sign In" ボタンから `Login.ShowLogin()` を呼びます。
+`LoginStateChanged(true)` でパネルを閉じます。`LoginStateChanged(false)` ではパネルを自動表示しない（`Login.IsLoggedIn` だけ更新）。これにより、ネットワーク一時切断などで誤ってパネルが開くことを防いでいます。
+
+ログアウト後の再ログインは StatusBar の "Sign In" ボタンから `Login.ShowLogin(isLoggedIn, username)` を呼びます。ログイン済み状態でパネルを開くと、ユーザー名とサインアウトボタンが表示されます。サインアウト後はパネルがログインフォームに切り替わります。
 
 ## BrowseSessionsViewModel のリフレッシュ
 

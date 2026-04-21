@@ -61,9 +61,8 @@
                 <v:SessionDetailPanel IsVisible="{Binding IsEngineReady}"
                                       DataContext="{Binding SessionDetail}" />
 
-                <!-- Login overlay -->
-                <v:LoginPanel IsVisible="{Binding Login.IsVisible}"
-                              DataContext="{Binding Login}" />
+                <!-- Login overlay (IsVisible managed by LoginPanel.axaml.cs via DataContext) -->
+                <v:LoginPanel IsVisible="False" DataContext="{Binding Login}" />
             </Grid>
 
             <!-- Right: Member List -->

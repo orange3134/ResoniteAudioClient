@@ -70,7 +70,8 @@ public partial class MainViewModel : ObservableObject
             SessionDetail.OnSetAccessLevel = level => host.PostToEngine(() => host.Sessions.SetAccessLevel(level));
             StatusBar.OnToggleMute = () => host.PostToEngine(() => host.Audio.ToggleMute());
             StatusBar.OnSetVolume = v => host.PostToEngine(() => host.Audio.SetMasterVolume(v));
-            StatusBar.OnShowLogin = () => _ = Dispatcher.UIThread.InvokeAsync(() => Login.ShowLogin());
+            StatusBar.OnShowLogin = () => _ = Dispatcher.UIThread.InvokeAsync(() =>
+                Login.ShowLogin(host.Auth.IsLoggedIn, host.Auth.CurrentUsername ?? ""));
             BrowseSessions.OnRefreshRequested = () =>
             {
                 _ = Dispatcher.UIThread.InvokeAsync(() => BrowseSessions.IsLoading = true);
@@ -91,6 +92,8 @@ public partial class MainViewModel : ObservableObject
                 IsLoggedIn = host.Auth.IsLoggedIn;
                 CurrentUsername = host.Auth.CurrentUsername ?? "";
                 StatusMessage = "Connected";
+                Login.IsLoggedIn = host.Auth.IsLoggedIn;
+                Login.LoggedInUsername = CurrentUsername;
                 Login.IsVisible = !host.Auth.IsLoggedIn;
                 SessionList.Update(host.Sessions.GetCurrentSessions());
                 MemberList.Update(host.Users.GetCurrentUsers());
@@ -112,6 +115,9 @@ public partial class MainViewModel : ObservableObject
     {
         IsLoggedIn = loggedIn;
         CurrentUsername = _host?.Auth.CurrentUsername ?? "";
-        Login.IsVisible = !loggedIn;
+        Login.IsLoggedIn = loggedIn;
+        Login.LoggedInUsername = CurrentUsername;
+        if (loggedIn)
+            Login.IsVisible = false;
     }
 }

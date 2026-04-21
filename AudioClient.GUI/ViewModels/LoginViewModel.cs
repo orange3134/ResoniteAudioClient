@@ -13,6 +13,8 @@ public partial class LoginViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = "";
     [ObservableProperty] private bool _isLoggingIn = false;
     [ObservableProperty] private bool _isVisible = false;
+    [ObservableProperty] private bool _isLoggedIn = false;
+    [ObservableProperty] private string _loggedInUsername = "";
 
     public Func<string, string, Task<LoginResult>>? OnLogin { get; set; }
     public Func<Task<LoginResult>>? OnLogout { get; set; }
@@ -63,5 +65,10 @@ public partial class LoginViewModel : ObservableObject
     [RelayCommand]
     private void Close() => IsVisible = false;
 
-    public void ShowLogin() => IsVisible = true;
+    public void ShowLogin(bool isLoggedIn = false, string username = "")
+    {
+        IsLoggedIn = isLoggedIn;
+        LoggedInUsername = username;
+        IsVisible = true;
+    }
 }

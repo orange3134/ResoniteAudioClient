@@ -7,13 +7,18 @@
              Background="#CC000000">
 
     <Border Background="{StaticResource BrushBgLight}" CornerRadius="8" Padding="32"
-            MaxWidth="360" MaxHeight="320"
+            MaxWidth="360" MaxHeight="400"
             HorizontalAlignment="Center" VerticalAlignment="Center"
             BoxShadow="0 8 32 0 #88000000">
 
         <StackPanel Spacing="16">
             <Grid>
-                <TextBlock Text="Sign In to Resonite" Foreground="{StaticResource BrushTextPrimary}"
+                <TextBlock IsVisible="{Binding !IsLoggedIn}"
+                           Text="Sign In to Resonite" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+                <TextBlock IsVisible="{Binding IsLoggedIn}"
+                           Text="Account" Foreground="{StaticResource BrushTextPrimary}"
                            FontSize="20" FontWeight="SemiBold" HorizontalAlignment="Center"
                            VerticalAlignment="Center" />
                 <Button Content="✕" Command="{Binding CloseCommand}"
@@ -22,11 +27,27 @@
                         Padding="4" FontSize="14" />
             </Grid>
 
-            <TextBox Text="{Binding Username}" Watermark="Username"
+            <!-- Logged in view -->
+            <StackPanel IsVisible="{Binding IsLoggedIn}" Spacing="4" HorizontalAlignment="Center">
+                <TextBlock Text="Signed in as:" Foreground="{StaticResource BrushTextMuted}"
+                           FontSize="12" HorizontalAlignment="Center" />
+                <TextBlock Text="{Binding LoggedInUsername}" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            </StackPanel>
+            <Button IsVisible="{Binding IsLoggedIn}" Content="Sign Out" Command="{Binding LogoutCommand}"
+                    Background="{StaticResource BrushRed}" Foreground="White"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Padding="0,8" CornerRadius="4"
+                    IsEnabled="{Binding !IsLoggingIn}" />
+
+            <!-- Not logged in view -->
+            <TextBox IsVisible="{Binding !IsLoggedIn}"
+                     Text="{Binding Username}" Watermark="Username"
                      Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                      IsEnabled="{Binding !IsLoggingIn}" />
 
-            <TextBox Text="{Binding Password}" Watermark="Password" PasswordChar="●"
+            <TextBox IsVisible="{Binding !IsLoggedIn}"
+                     Text="{Binding Password}" Watermark="Password" PasswordChar="●"
                      Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                      IsEnabled="{Binding !IsLoggingIn}" />
 
@@ -34,7 +55,8 @@
                        FontSize="12" IsVisible="{Binding ErrorMessage, Converter={x:Static v:StringNotEmptyConverter.Instance}}"
                        TextWrapping="Wrap" />
 
-            <Button Content="Sign In" Command="{Binding LoginCommand}"
+            <Button IsVisible="{Binding !IsLoggedIn}"
+                    Content="Sign In" Command="{Binding LoginCommand}"
                     Background="{StaticResource BrushAccent}" Foreground="White"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Padding="0,8" CornerRadius="4"
