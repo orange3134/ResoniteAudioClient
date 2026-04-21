@@ -12,8 +12,10 @@ public class UserService
 {
     private readonly Engine _engine;
     private List<UserInfo> _lastUsers = new();
+    private string? _lastVoiceMode;
 
     public event EventHandler<List<UserInfo>>? UsersChanged;
+    public event EventHandler<string?>? VoiceModeChanged;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal UserService(Engine engine)
@@ -26,8 +28,14 @@ public class UserService
     {
         var world = _engine.WorldManager.FocusedWorld;
         if (world == null || world == Userspace.UserspaceWorld) return new List<UserInfo>();
+        var contactIds = new HashSet<string>();
+        _engine.Cloud.Contacts.ForeachContactData(cd =>
+        {
+            if (cd.Contact.ContactUserId != null) contactIds.Add(cd.Contact.ContactUserId);
+        });
         return world.AllUsers.Select(u => new UserInfo(
-            u.UserName, u.UserID, u.IsHost, u.IsLocalUser, u.IsPresentInWorld, u.Ping)).ToList();
+            u.UserName, u.UserID, u.IsHost, u.IsLocalUser, u.IsPresentInWorld, u.Ping,
+            u.UserID != null && contactIds.Contains(u.UserID))).ToList();
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -141,6 +149,16 @@ public class UserService
             {
                 _lastUsers = current;
                 UsersChanged?.Invoke(this, current);
+            }
+        }
+        catch { }
+        try
+        {
+            var mode = GetVoiceMode();
+            if (mode != _lastVoiceMode)
+            {
+                _lastVoiceMode = mode;
+                VoiceModeChanged?.Invoke(this, mode);
             }
         }
         catch { }

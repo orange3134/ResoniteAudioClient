@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             x:Class="AudioClient.GUI.Views.UserInfoPanel"
+             x:DataType="vm:UserInfoViewModel"
+             Background="#CC000000">
+
+    <Border Background="{StaticResource BrushBgLight}" CornerRadius="8" Padding="24"
+            MaxWidth="300" MaxHeight="240"
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            BoxShadow="0 8 32 0 #88000000">
+
+        <StackPanel Spacing="12">
+            <!-- Title + Close -->
+            <Grid>
+                <TextBlock Text="User Info" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="18" FontWeight="SemiBold"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Button Content="✕" Command="{Binding CloseCommand}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                        Padding="4" FontSize="14" />
+            </Grid>
+
+            <!-- Username -->
+            <StackPanel Spacing="2">
+                <TextBlock Text="Username" Foreground="{StaticResource BrushTextMuted}" FontSize="11" />
+                <TextBlock Text="{Binding UserName}" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="15" FontWeight="SemiBold" />
+            </StackPanel>
+
+            <!-- User ID -->
+            <StackPanel Spacing="2">
+                <TextBlock Text="User ID" Foreground="{StaticResource BrushTextMuted}" FontSize="11" />
+                <TextBlock Text="{Binding UserId}" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="12" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+
+            <!-- Contact badge -->
+            <TextBlock IsVisible="{Binding IsContact}" Text="👥 In your contacts"
+                       Foreground="{StaticResource BrushGreen}" FontSize="12" />
+
+            <!-- Add Contact button (shown when not a contact) -->
+            <Button IsVisible="{Binding !IsContact}"
+                    Content="Add to Contacts" Command="{Binding AddContactCommand}"
+                    Background="{StaticResource BrushAccent}" Foreground="White"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Padding="0,8" CornerRadius="4"
+                    IsEnabled="{Binding !IsAdding}" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -92,6 +92,24 @@ public class ContactService
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
+    public async Task AddContactAsync(string userId, string username)
+    {
+        await _engine.Cloud.Contacts.AddContact(userId, username);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public bool IsContact(string? userId)
+    {
+        if (userId == null) return false;
+        bool found = false;
+        _engine.Cloud.Contacts.ForeachContactData(cd =>
+        {
+            if (cd.Contact.ContactUserId == userId) found = true;
+        });
+        return found;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public bool JoinContactSession(string username)
     {
         SkyFrost.Base.ContactData? target = null;

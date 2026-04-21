@@ -63,6 +63,9 @@
 
                 <!-- Login overlay (IsVisible managed by LoginPanel.axaml.cs via DataContext) -->
                 <v:LoginPanel IsVisible="False" DataContext="{Binding Login}" />
+
+                <!-- User info overlay (IsVisible managed by UserInfoPanel.axaml.cs via DataContext) -->
+                <v:UserInfoPanel IsVisible="False" DataContext="{Binding UserInfoPopup}" />
             </Grid>
 
             <!-- Right: Member List -->

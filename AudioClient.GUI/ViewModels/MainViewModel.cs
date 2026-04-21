@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -22,6 +23,7 @@ public partial class MainViewModel : ObservableObject
     public StatusBarViewModel StatusBar { get; }
     public LoginViewModel Login { get; }
     public BrowseSessionsViewModel BrowseSessions { get; }
+    public UserInfoViewModel UserInfoPopup { get; }
 
     public MainViewModel(string appDir, string[] args)
     {
@@ -31,6 +33,7 @@ public partial class MainViewModel : ObservableObject
         StatusBar = new StatusBarViewModel();
         Login = new LoginViewModel();
         BrowseSessions = new BrowseSessionsViewModel();
+        UserInfoPopup = new UserInfoViewModel();
 
         Task.Run(() => InitializeEngineAsync(appDir, args));
     }
@@ -52,9 +55,15 @@ public partial class MainViewModel : ObservableObject
             host.Auth.LoginStateChanged += (_, loggedIn) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => OnLoginStateChanged(loggedIn));
             host.Sessions.SessionListChanged += (_, sessions) =>
-                _ = Dispatcher.UIThread.InvokeAsync(() => SessionList.Update(sessions));
+                _ = Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    SessionList.Update(sessions);
+                    SessionDetail.Update(sessions.FirstOrDefault(s => s.IsFocused));
+                });
             host.Users.UsersChanged += (_, users) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => MemberList.Update(users));
+            host.Users.VoiceModeChanged += (_, mode) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.CurrentVoiceMode = mode ?? "Normal");
             host.Audio.MuteChanged += (_, muted) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.IsMuted = muted);
             host.Audio.VolumeChanged += (_, vol) =>
@@ -70,21 +79,29 @@ public partial class MainViewModel : ObservableObject
             SessionDetail.OnSetAccessLevel = level => host.PostToEngine(() => host.Sessions.SetAccessLevel(level));
             StatusBar.OnToggleMute = () => host.PostToEngine(() => host.Audio.ToggleMute());
             StatusBar.OnSetVolume = v => host.PostToEngine(() => host.Audio.SetMasterVolume(v));
+            StatusBar.OnSetSoundEffectVolume = v => host.PostToEngine(() => host.Audio.SetSoundEffectVolume(v));
+            StatusBar.OnSetMultimediaVolume = v => host.PostToEngine(() => host.Audio.SetMultimediaVolume(v));
+            StatusBar.OnSetVoiceVolume = v => host.PostToEngine(() => host.Audio.SetVoiceVolume(v));
+            StatusBar.OnSetUIVolume = v => host.PostToEngine(() => host.Audio.SetUIVolume(v));
+            StatusBar.OnSetVoiceMode = mode => host.PostToEngine(() => host.Users.SetVoiceMode(mode));
             StatusBar.OnShowLogin = () => _ = Dispatcher.UIThread.InvokeAsync(() =>
                 Login.ShowLogin(host.Auth.IsLoggedIn, host.Auth.CurrentUsername ?? ""));
             BrowseSessions.OnRefreshRequested = () =>
             {
                 _ = Dispatcher.UIThread.InvokeAsync(() => BrowseSessions.IsLoading = true);
-                var sessions = host.Sessions.GetActiveSessions();
+                var sessions = host.Sessions.GetActiveSessions(BrowseSessions.ActiveOnly);
                 _ = Dispatcher.UIThread.InvokeAsync(() => BrowseSessions.Update(sessions, BrowseSessions.SearchText));
             };
             BrowseSessions.OnJoinRequested = url => host.PostToEngine(() => host.Sessions.Join(url));
-            Login.OnLogin = async (u, p) =>
-            {
-                var result = await host.Auth.LoginAsync(u, p);
-                return result;
-            };
+            Login.OnLogin = async (u, p) => await host.Auth.LoginAsync(u, p);
             Login.OnLogout = async () => await host.Auth.LogoutAsync();
+            MemberList.OnMoveToRequested = item =>
+                host.PostToEngine(() => host.Users.MoveToUser(item.UserName));
+            MemberList.OnShowInfoRequested = item =>
+                _ = Dispatcher.UIThread.InvokeAsync(() =>
+                    UserInfoPopup.Show(item.UserName, item.UserId, item.IsContact));
+            UserInfoPopup.OnAddContact = async (userId, username) =>
+                await host.Contacts.AddContactAsync(userId, username);
 
             _ = Dispatcher.UIThread.InvokeAsync(() =>
             {
@@ -95,11 +112,15 @@ public partial class MainViewModel : ObservableObject
                 Login.IsLoggedIn = host.Auth.IsLoggedIn;
                 Login.LoggedInUsername = CurrentUsername;
                 Login.IsVisible = !host.Auth.IsLoggedIn;
-                SessionList.Update(host.Sessions.GetCurrentSessions());
+                var currentSessions = host.Sessions.GetCurrentSessions();
+                SessionList.Update(currentSessions);
+                SessionDetail.Update(currentSessions.FirstOrDefault(s => s.IsFocused));
                 MemberList.Update(host.Users.GetCurrentUsers());
                 StatusBar.IsMuted = host.Audio.IsMuted;
                 var vol = host.Audio.GetVolumes();
                 if (vol != null) StatusBar.UpdateVolumes(vol);
+                var voiceMode = host.Users.GetVoiceMode();
+                if (voiceMode != null) StatusBar.CurrentVoiceMode = voiceMode;
             });
         }
         catch (Exception ex)

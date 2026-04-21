@@ -6,6 +6,18 @@
              x:DataType="vm:MemberListViewModel"
              Background="{StaticResource BrushBgMid}">
 
+    <UserControl.Styles>
+        <!-- Buttons hidden by default but always take layout space to prevent layout shift -->
+        <Style Selector="Grid.MemberRow StackPanel.HoverActions">
+            <Setter Property="Opacity" Value="0"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
+        <Style Selector="Grid.MemberRow:pointerover StackPanel.HoverActions">
+            <Setter Property="Opacity" Value="1"/>
+            <Setter Property="IsHitTestVisible" Value="True"/>
+        </Style>
+    </UserControl.Styles>
+
     <Grid RowDefinitions="Auto,*">
 
         <!-- Header -->
@@ -23,13 +35,47 @@
             <ItemsControl ItemsSource="{Binding Members}" Margin="8,8">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MemberItemViewModel">
-                        <Grid ColumnDefinitions="Auto,*" Margin="0,3">
+                        <!--
+                            Background="Transparent" is required so the entire row (including
+                            empty space) is hit-testable. Without it the pointer-over state is
+                            only active when the mouse is directly over a child element.
+                        -->
+                        <Grid Classes="MemberRow" Background="Transparent"
+                              Margin="0,2" ColumnDefinitions="Auto,Auto,*,Auto">
+
+                            <!-- Status dot -->
                             <TextBlock Grid.Column="0" Text="{Binding StatusDot}"
                                        Foreground="{Binding IsPresent, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Green:TextMuted'}"
-                                       FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Grid.Column="1" Text="{Binding Label}"
+                                       FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0" />
+
+                            <!-- Contact icon -->
+                            <TextBlock Grid.Column="1" Text="👥" FontSize="10" VerticalAlignment="Center"
+                                       IsVisible="{Binding IsContact}" Margin="0,0,4,0"
+                                       ToolTip.Tip="In your contacts" />
+
+                            <!-- Username -->
+                            <TextBlock Grid.Column="2" Text="{Binding Label}"
                                        Foreground="{StaticResource BrushTextPrimary}"
-                                       FontSize="13" TextTrimming="CharacterEllipsis" />
+                                       FontSize="13" TextTrimming="CharacterEllipsis"
+                                       VerticalAlignment="Center" />
+
+                            <!-- Hover action buttons (always in layout, opacity-controlled) -->
+                            <StackPanel Grid.Column="3" Classes="HoverActions"
+                                        Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                <Button Content="MoveTo"
+                                        Command="{Binding $parent[ItemsControl].((vm:MemberListViewModel)DataContext).MoveToCommand}"
+                                        CommandParameter="{Binding}"
+                                        Background="{StaticResource BrushBgDark}"
+                                        Foreground="{StaticResource BrushTextPrimary}"
+                                        FontSize="10" Padding="4,2" CornerRadius="3" />
+                                <Button Content="Info"
+                                        Command="{Binding $parent[ItemsControl].((vm:MemberListViewModel)DataContext).ShowInfoCommand}"
+                                        CommandParameter="{Binding}"
+                                        Background="{StaticResource BrushBgDark}"
+                                        Foreground="{StaticResource BrushTextPrimary}"
+                                        FontSize="10" Padding="4,2" CornerRadius="3" />
+                            </StackPanel>
+
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

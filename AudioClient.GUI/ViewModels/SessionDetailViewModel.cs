@@ -9,6 +9,7 @@ public partial class SessionDetailViewModel : ObservableObject
 {
     [ObservableProperty] private string _sessionName = "";
     [ObservableProperty] private string _accessLevel = "";
+    [ObservableProperty] private string _userCountText = "";
     [ObservableProperty] private bool _isHost = false;
     [ObservableProperty] private bool _hasSession = false;
     [ObservableProperty] private bool _isEditingName = false;
@@ -21,9 +22,10 @@ public partial class SessionDetailViewModel : ObservableObject
     public void Update(WorldInfo? info)
     {
         HasSession = info != null;
-        if (info == null) { SessionName = ""; AccessLevel = ""; IsHost = false; return; }
+        if (info == null) { SessionName = ""; AccessLevel = ""; UserCountText = ""; IsHost = false; return; }
         SessionName = info.Name;
         AccessLevel = info.AccessLevel;
+        UserCountText = $"{info.UserCount}/{info.MaxUserCount}";
         IsHost = info.IsHost;
     }
 

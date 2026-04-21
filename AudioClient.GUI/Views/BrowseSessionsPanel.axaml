@@ -5,7 +5,7 @@
              x:DataType="vm:BrowseSessionsViewModel"
              Background="{StaticResource BrushBgMid}">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
 
         <!-- Header -->
         <Border Grid.Row="0" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1" Padding="12,10">
@@ -14,8 +14,8 @@
         </Border>
 
         <!-- Search + Refresh -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,6,6,4">
-            <TextBox Grid.Column="0" Text="{Binding SearchText}" Watermark="Search..."
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,6,6,2">
+            <TextBox x:Name="SearchBox" Grid.Column="0" Text="{Binding SearchText}" Watermark="Search..."
                      Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
                      FontSize="12" Padding="6,4" CornerRadius="4" />
             <Button Grid.Column="1" Content="⟳" Command="{Binding RefreshCommand}"
@@ -24,8 +24,13 @@
                     ToolTip.Tip="Refresh" />
         </Grid>
 
+        <!-- Active only filter -->
+        <CheckBox Grid.Row="2" IsChecked="{Binding ActiveOnly}" Content="Active only"
+                  Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                  Margin="8,2,6,4" />
+
         <!-- Session List -->
-        <ScrollViewer Grid.Row="2">
+        <ScrollViewer Grid.Row="3">
             <ItemsControl ItemsSource="{Binding Sessions}" Margin="4,0,4,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BrowseSessionItemViewModel">
@@ -55,7 +60,7 @@
         </ScrollViewer>
 
         <!-- Loading indicator -->
-        <TextBlock Grid.Row="3" Text="Loading..." IsVisible="{Binding IsLoading}"
+        <TextBlock Grid.Row="4" Text="Loading..." IsVisible="{Binding IsLoading}"
                    Foreground="{StaticResource BrushTextMuted}" FontSize="12"
                    HorizontalAlignment="Center" Margin="0,4" />
 

@@ -46,6 +46,12 @@
                         <TextBlock Text="{Binding AccessLevel}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
                     </StackPanel>
                 </Border>
+                <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding UserCountText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                    </StackPanel>
+                </Border>
                 <Border Background="{StaticResource BrushAccent}" CornerRadius="4" Padding="8,4"
                         IsVisible="{Binding IsHost}">
                     <TextBlock Text="HOST" Foreground="White" FontSize="11" FontWeight="SemiBold" />
@@ -63,6 +69,9 @@
                             Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                             Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
                     <Button Content="ContactsPlus" Command="{Binding SetAccessLevelCommand}" CommandParameter="ContactsPlus"
+                            Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
+                            Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
+                    <Button Content="RegisteredUsers" Command="{Binding SetAccessLevelCommand}" CommandParameter="RegisteredUsers"
                             Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                             Margin="0,0,4,4" Padding="8,4" CornerRadius="4" />
                     <Button Content="Anyone" Command="{Binding SetAccessLevelCommand}" CommandParameter="Anyone"

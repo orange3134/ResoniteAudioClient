@@ -16,22 +16,105 @@
                 FontSize="12" Padding="8,4" VerticalAlignment="Center"
                 ToolTip.Tip="Sign in to Resonite" />
 
-        <!-- Mute button -->
-        <Button Grid.Column="0" Content="{Binding MuteButtonText}"
-                Command="{Binding ToggleMuteCommand}"
-                Background="Transparent"
-                Foreground="{Binding IsMuted, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Red:TextPrimary'}"
-                FontSize="18" Padding="6" VerticalAlignment="Center"
-                ToolTip.Tip="Toggle Mute" />
+        <!-- Mic group: [🎤 mute] [🟢 voice indicator] [▼ popup toggle] -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="MuteBtn" Content="{Binding MuteButtonText}"
+                    Command="{Binding ToggleMuteCommand}"
+                    Background="Transparent"
+                    Foreground="{Binding IsMuted, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Red:TextPrimary'}"
+                    FontSize="18" Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Toggle Mute" />
+            <!-- Current voice mode indicator -->
+            <TextBlock Text="{Binding VoiceModeLabel}" FontSize="13" VerticalAlignment="Center"
+                       Margin="0,0,2,0" ToolTip.Tip="{Binding CurrentVoiceMode}" />
+            <!-- Voice mode dropdown button — to the RIGHT of the indicator -->
+            <Button Content="▼" Command="{Binding ToggleVoiceModePopupCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="9" Padding="2,0" VerticalAlignment="Center"
+                    ToolTip.Tip="Voice mode" />
+            <!--
+                IsOpen uses TwoWay so that light-dismiss (clicking outside) writes
+                IsVoiceModePopupOpen=false back to the VM. Without TwoWay the VM
+                keeps thinking the popup is open, and the first click of ▼ just
+                toggles it to false (invisible no-op), requiring a second click.
+            -->
+            <Popup IsOpen="{Binding IsVoiceModePopupOpen, Mode=TwoWay}"
+                   PlacementTarget="{Binding ElementName=MuteBtn}"
+                   Placement="Top" IsLightDismissEnabled="True">
+                <Border Background="{StaticResource BrushBgLight}" CornerRadius="6" Padding="6"
+                        BoxShadow="0 4 16 0 #88000000">
+                    <StackPanel Spacing="2" Width="160">
+                        <Button Content="🟣 Whisper" Command="{Binding SetVoiceModeCommand}" CommandParameter="Whisper"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5" />
+                        <Button Content="🟢 Normal" Command="{Binding SetVoiceModeCommand}" CommandParameter="Normal"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5" />
+                        <Button Content="🟡 Shout" Command="{Binding SetVoiceModeCommand}" CommandParameter="Shout"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5" />
+                        <Button Content="🔵 Broadcast" Command="{Binding SetVoiceModeCommand}" CommandParameter="Broadcast"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5" />
+                    </StackPanel>
+                </Border>
+            </Popup>
+        </StackPanel>
 
-        <!-- Volume Slider -->
-        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="6" Margin="8,0">
-            <TextBlock Text="🔊" FontSize="14" VerticalAlignment="Center"
+        <!-- Volume group: [🔊] [master slider] [%] [▼ popup toggle] -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4" Margin="8,0">
+            <TextBlock x:Name="SpeakerIcon" Text="🔊" FontSize="14" VerticalAlignment="Center"
                        Foreground="{StaticResource BrushTextMuted}" />
             <Slider Value="{Binding MasterVolume}" Minimum="0" Maximum="1"
-                    Width="100" VerticalAlignment="Center" />
+                    Width="90" VerticalAlignment="Center" />
             <TextBlock Text="{Binding MasterVolume, StringFormat={}{0:P0}}"
                        Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" />
+            <Button Content="▼" Command="{Binding ToggleVolumePopupCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="9" Padding="2,0" VerticalAlignment="Center"
+                    ToolTip.Tip="Volume details" />
+            <!-- Same TwoWay fix as voice mode popup -->
+            <Popup IsOpen="{Binding IsVolumePopupOpen, Mode=TwoWay}"
+                   PlacementTarget="{Binding ElementName=SpeakerIcon}"
+                   Placement="Top" IsLightDismissEnabled="True">
+                <Border Background="{StaticResource BrushBgLight}" CornerRadius="6" Padding="12"
+                        BoxShadow="0 4 16 0 #88000000">
+                    <StackPanel Spacing="6" Width="220">
+                        <TextBlock Text="Sound Effect" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Slider Grid.Column="0" Value="{Binding SoundEffectVolume}" Minimum="0" Maximum="1" />
+                            <TextBlock Grid.Column="1" Text="{Binding SoundEffectVolume, StringFormat={}{0:P0}}"
+                                       Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" Width="36" />
+                        </Grid>
+                        <TextBlock Text="Multimedia" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Slider Grid.Column="0" Value="{Binding MultimediaVolume}" Minimum="0" Maximum="1" />
+                            <TextBlock Grid.Column="1" Text="{Binding MultimediaVolume, StringFormat={}{0:P0}}"
+                                       Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" Width="36" />
+                        </Grid>
+                        <TextBlock Text="Voice" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Slider Grid.Column="0" Value="{Binding VoiceVolume}" Minimum="0" Maximum="1" />
+                            <TextBlock Grid.Column="1" Text="{Binding VoiceVolume, StringFormat={}{0:P0}}"
+                                       Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" Width="36" />
+                        </Grid>
+                        <TextBlock Text="UI" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" FontWeight="SemiBold" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Slider Grid.Column="0" Value="{Binding UIVolume}" Minimum="0" Maximum="1" />
+                            <TextBlock Grid.Column="1" Text="{Binding UIVolume, StringFormat={}{0:P0}}"
+                                       Foreground="{StaticResource BrushTextMuted}" FontSize="11"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" Width="36" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Popup>
         </StackPanel>
 
     </Grid>

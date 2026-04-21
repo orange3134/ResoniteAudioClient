@@ -5,6 +5,7 @@ public record WorldInfo(
     string Name,
     string State,
     int UserCount,
+    int MaxUserCount,
     string AccessLevel,
     bool IsFocused,
     bool IsHost,

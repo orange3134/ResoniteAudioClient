@@ -101,6 +101,26 @@ csprojのpost-buildで明示的にコピーする必要があります：
 
 ゲームフォルダの `runtimes/win-x64/native/` はすでにPATHに含まれているため、このパスに置けばOSが自動で解決します。
 
+## Avalonia コンパイル済みバインディングの注意点（ネストパス）
+
+`x:DataType` を指定したコンパイル済みバインディングで `{Binding Login.IsVisible}` のようなネストパスを使う場合、中間プロパティ（`Login`）が `[ObservableProperty]` でないと Avalonia が末端の `PropertyChanged` を購読しないことがあります。結果として VM 側でプロパティを変更しても UI が更新されません。
+
+**対処パターン**: 外部から `IsVisible` を制御したいコントロールは、コードビハインドで `DataContextChanged` を購読し、VM の `PropertyChanged` を直接監視してコントロールの `IsVisible` を更新します。XAML 側には `IsVisible="False"` の静的初期値だけ置き、バインディングは書きません。
+
+```csharp
+DataContextChanged += (_, _) =>
+{
+    if (_vm != null) _vm.PropertyChanged -= _handler;
+    _vm = DataContext as MyViewModel;
+    if (_vm != null)
+    {
+        _handler = (_, e) => { if (e.PropertyName == nameof(MyViewModel.IsVisible)) IsVisible = _vm.IsVisible; };
+        _vm.PropertyChanged += _handler;
+        IsVisible = _vm.IsVisible;
+    }
+};
+```
+
 ## ログインパネルの表示制御
 
 エンジン初期化完了時に `Login.IsVisible = !host.Auth.IsLoggedIn` と `Login.IsLoggedIn = host.Auth.IsLoggedIn` を設定します（保存済みセッションで自動ログインされた場合はパネルを表示しない）。

@@ -6,5 +6,6 @@ public record UserInfo(
     bool IsHost,
     bool IsLocal,
     bool IsPresentInWorld,
-    int Ping
+    int Ping,
+    bool IsContact
 );
