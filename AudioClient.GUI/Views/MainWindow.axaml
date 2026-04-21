@@ -12,6 +12,8 @@
         ExtendClientAreaChromeHints="NoChrome"
         SystemDecorations="Full">
 
+    <Grid>
+
     <Grid RowDefinitions="Auto,*,Auto">
 
         <!-- Title bar -->
@@ -101,6 +103,19 @@
 
         <!-- Bottom: Status Bar -->
         <v:StatusBarPanel Grid.Row="2" DataContext="{Binding StatusBar}" />
+
+    </Grid>
+
+    <!-- Shutdown overlay -->
+    <Grid IsVisible="{Binding IsShuttingDown}" Background="#CC101520">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+            <TextBlock Text="終了処理中..." Foreground="{StaticResource BrushTextPrimary}"
+                       FontSize="22" FontWeight="SemiBold" HorizontalAlignment="Center" />
+            <TextBlock Text="データを保存しています。しばらくお待ちください。"
+                       Foreground="{StaticResource BrushTextMuted}"
+                       FontSize="13" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
 
     </Grid>
 </Window>

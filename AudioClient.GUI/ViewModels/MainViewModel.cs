@@ -15,6 +15,7 @@ public partial class MainViewModel : ObservableObject
 
     [ObservableProperty] private bool _isEngineReady = false;
     [ObservableProperty] private bool _isLoggedIn = false;
+    [ObservableProperty] private bool _isShuttingDown = false;
     [ObservableProperty] private string _statusMessage = "Initializing engine...";
     [ObservableProperty] private string _currentUsername = "";
     [ObservableProperty] private bool _isBrowseTabSelected = true;
@@ -171,6 +172,13 @@ public partial class MainViewModel : ObservableObject
 
     private void UpdateStatus(string msg)
         => _ = Dispatcher.UIThread.InvokeAsync(() => StatusMessage = msg);
+
+    public async Task ShutdownAsync()
+    {
+        IsShuttingDown = true;
+        if (_host != null)
+            await Task.Run(() => _host.Shutdown());
+    }
 
     private void OnLoginStateChanged(bool loggedIn)
     {

@@ -81,10 +81,12 @@ public class EngineHost : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Shutdown()
     {
-        _shutdownRequested = true;
         _pollTimer.Dispose();
+        // ExitApp triggers AppEnder which calls Engine.RequestShutdown() after saves complete.
+        // The update loop must keep running until then so AppEnder can execute.
         Userspace.ExitApp(saveHomes: false);
         _updateThread.Join();
+        _shutdownRequested = true;
         _engine.Dispose();
     }
 
@@ -98,7 +100,7 @@ public class EngineHost : IDisposable
 
     private void UpdateLoop()
     {
-        while (!_shutdownRequested)
+        while (!_shutdownRequested && !_engine.ShutdownRequested)
         {
             _engine.RunUpdateLoop();
             Thread.Sleep(10);
