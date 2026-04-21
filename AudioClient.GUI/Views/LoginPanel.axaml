@@ -7,7 +7,7 @@
              Background="#CC000000">
 
     <Border Background="{StaticResource BrushBgLight}" CornerRadius="8" Padding="32"
-            MaxWidth="360" MaxHeight="460"
+            MaxWidth="460" MaxHeight="460" MinWidth="400"
             HorizontalAlignment="Center" VerticalAlignment="Center"
             BoxShadow="0 8 32 0 #88000000">
 
