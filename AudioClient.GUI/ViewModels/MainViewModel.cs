@@ -134,7 +134,7 @@ public partial class MainViewModel : ObservableObject
             SessionPreview.OnJoinRequested = url => host.PostToEngine(() => host.Sessions.Join(url));
 
             // Login
-            Login.OnLogin = async (u, p) => await host.Auth.LoginAsync(u, p);
+            Login.OnLogin = async (u, p, t) => await host.Auth.LoginAsync(u, p, t);
             Login.OnLogout = async () => await host.Auth.LogoutAsync();
 
             // Icon fetch callback (shared for both panels)

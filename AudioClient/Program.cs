@@ -263,10 +263,23 @@ public class Program
                     break;
 
                 case "login":
-                    if (args.Length < 3) { Console.WriteLine("Usage: login <username> <password>"); break; }
+                    if (args.Length < 3) { Console.WriteLine("Usage: login <username> <password> [totp]"); break; }
                     Task.Run(async () =>
                     {
-                        var r = await host.Auth.LoginAsync(args[1], args[2]);
+                        string? totp = args.Length >= 4 ? args[3] : null;
+                        var r = await host.Auth.LoginAsync(args[1], args[2], totp);
+                        if (r.RequiresTotp && string.IsNullOrWhiteSpace(totp))
+                        {
+                            Console.Write("TOTP code: ");
+                            var enteredTotp = Console.ReadLine();
+                            if (string.IsNullOrWhiteSpace(enteredTotp))
+                            {
+                                Console.WriteLine("Login failed: TOTP code entry was cancelled.");
+                                return;
+                            }
+
+                            r = await host.Auth.LoginAsync(args[1], args[2], enteredTotp);
+                        }
                         Console.WriteLine(r.IsOK ? $"Login OK: {r.Message}" : $"Login failed: {r.Message}");
                     });
                     break;
@@ -467,7 +480,7 @@ public class Program
         Console.WriteLine("  moveToUser <name>                - Move to 1m in front of user");
         Console.WriteLine("  locomotion [name]                - List or switch locomotion");
         Console.WriteLine("  voiceMode [mode]                 - Show or set voice mode");
-        Console.WriteLine("  login <user> <password>          - Login to Resonite");
+        Console.WriteLine("  login <user> <password> [totp]   - Login to Resonite");
         Console.WriteLine("  logout                           - Logout from Resonite");
         Console.WriteLine("  contactList                      - List online contacts");
         Console.WriteLine("  contactInfo <username>           - Show contact details");

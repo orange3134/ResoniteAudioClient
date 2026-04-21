@@ -54,3 +54,23 @@ public class NotZeroConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+public class BoolToStringConverter : IValueConverter
+{
+    public static readonly BoolToStringConverter SignInButtonLabel = new("Verify TOTP", "Sign In");
+
+    private readonly string _trueText;
+    private readonly string _falseText;
+
+    public BoolToStringConverter(string trueText, string falseText)
+    {
+        _trueText = trueText;
+        _falseText = falseText;
+    }
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is true ? _trueText : _falseText;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

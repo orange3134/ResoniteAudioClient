@@ -6,7 +6,7 @@ using SkyFrost.Base;
 
 namespace AudioClient.Core.Services;
 
-public record LoginResult(bool IsOK, string Message);
+public record LoginResult(bool IsOK, string Message, bool RequiresTotp = false);
 
 public class AuthService
 {
@@ -27,7 +27,7 @@ public class AuthService
     public string? CurrentUserId => _engine.Cloud.CurrentUserID;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public async Task<LoginResult> LoginAsync(string username, string password)
+    public async Task<LoginResult> LoginAsync(string username, string password, string? totp = null)
     {
         if (_engine.Cloud.CurrentUser != null)
             return new LoginResult(false, $"Already logged in as '{_engine.Cloud.CurrentUsername}'. Use logout first.");
@@ -36,13 +36,15 @@ public class AuthService
         {
             var auth = new PasswordLogin(password);
             var result = await _engine.Cloud.Session.Login(
-                username, auth, _engine.Cloud.SecretMachineId, rememberMe: true, totp: null);
+                username, auth, _engine.Cloud.SecretMachineId, rememberMe: true, totp: totp);
 
             if (result.IsOK)
             {
                 NotifyLoginChanged();
                 return new LoginResult(true, $"Logged in as: {_engine.Cloud.CurrentUsername}");
             }
+            if (string.Equals(result.Content, "TOTP", StringComparison.OrdinalIgnoreCase))
+                return new LoginResult(false, "A TOTP code is required for this account.", RequiresTotp: true);
             return new LoginResult(false, $"{result.State} - {result.Content}");
         }
         catch (Exception ex)

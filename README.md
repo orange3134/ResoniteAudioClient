@@ -331,6 +331,18 @@ login myUsername myPassword
 - すでにログイン済みの場合は先に `logout` が必要です
 - ログイン処理は非同期で実行され、完了時に結果が表示されます
 
+### `login <username> <password> [totp]`
+
+TOTP を有効にしている Resonite アカウントでもログインできます。
+```
+login myUsername myPassword
+login myUsername myPassword 123456
+```
+
+- TOTP が必要なアカウントでコード未指定のまま `login` すると、CLI では追加の TOTP 入力を促します
+- GUI では最初のログイン要求後に TOTP 入力欄が表示され、同じパネル上で認証を続けられます
+- TOTP コードはそのログイン要求にだけ使われ、成功時や通常エラー時には入力欄をリセットします
+
 ### `logout`
 
 現在のResoniteアカウントからログアウトします。

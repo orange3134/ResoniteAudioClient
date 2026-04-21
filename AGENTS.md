@@ -86,6 +86,9 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 - **ログアウト**: `engine.Cloud.Session.Logout(isManual: true)`
 - **セッション一覧**: `engine.Cloud.Sessions.GetSessions(List<SessionInfo>)`
 
+### TOTP 必須時の判定
+`engine.Cloud.Session.Login(...)` は TOTP が必要なとき例外ではなく `CloudResult` を返し、`result.Content == "TOTP"` になります。GUI や CLI で二段階ログインを実装するときは、この値を見て追加の TOTP 入力を促してください。
+
 ### ワールド・フォーカス管理 (`engine.WorldManager`)
 - **現在参加中のワールド一覧**: `engine.WorldManager.Worlds`
 - **ワールド切り替え（フォーカス）**: `engine.WorldManager.FocusWorld(World)`
