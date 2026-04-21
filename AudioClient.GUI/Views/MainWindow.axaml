@@ -5,6 +5,7 @@
         x:Class="AudioClient.GUI.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="AudioClient"
+        Icon="/AudioClientIcon.ico"
         Width="1160" Height="600"
         MinWidth="800" MinHeight="400"
         Background="{StaticResource BrushBgDark}"

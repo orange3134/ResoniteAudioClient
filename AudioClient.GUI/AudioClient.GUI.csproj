@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <Deterministic>true</Deterministic>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <ApplicationIcon>AudioClientIcon.ico</ApplicationIcon>
 
     <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
     <AppDeployDirName>AudioClient</AppDeployDirName>
@@ -24,6 +25,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AudioClient.Core\AudioClient.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="AudioClientIcon.ico" />
   </ItemGroup>
 
   <!-- FrooxEngine refs required for runtime assembly resolution -->
