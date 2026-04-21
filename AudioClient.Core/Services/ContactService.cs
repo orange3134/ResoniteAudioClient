@@ -32,6 +32,9 @@ public class ContactService
             var onlineStatus = status?.OnlineStatus ?? OnlineStatus.Offline;
             if (onlineStatus == OnlineStatus.Offline || onlineStatus == OnlineStatus.Invisible) return;
             var si = cd.CurrentSessionInfo;
+            var siUrls = si?.GetSessionURLs();
+            var sessionUrl = siUrls?.FirstOrDefault(u => u.Scheme.StartsWith("lnl"))?.ToString()
+                ?? siUrls?.FirstOrDefault()?.ToString();
             result.Add(new ContactInfo(
                 cd.Contact.ContactUsername,
                 cd.Contact.ContactUserId,
@@ -39,7 +42,9 @@ public class ContactService
                 si?.Name,
                 si?.HostUsername,
                 si?.JoinedUsers ?? 0,
-                si?.MaximumUsers ?? 0));
+                si?.MaximumUsers ?? 0,
+                si?.AccessLevel.ToString(),
+                sessionUrl));
         });
         return result;
     }
@@ -58,10 +63,14 @@ public class ContactService
         var status = cd.CurrentStatus;
         var onlineStatus = status?.OnlineStatus ?? OnlineStatus.Offline;
         var si = cd.CurrentSessionInfo;
+        var siUrls2 = si?.GetSessionURLs();
+        var sessionUrl2 = siUrls2?.FirstOrDefault(u => u.Scheme.StartsWith("lnl"))?.ToString()
+            ?? siUrls2?.FirstOrDefault()?.ToString();
         var info = new ContactInfo(
             cd.Contact.ContactUsername, cd.Contact.ContactUserId,
             onlineStatus.ToString(), si?.Name, si?.HostUsername,
-            si?.JoinedUsers ?? 0, si?.MaximumUsers ?? 0);
+            si?.JoinedUsers ?? 0, si?.MaximumUsers ?? 0,
+            si?.AccessLevel.ToString(), sessionUrl2);
 
         var sessions = status?.Sessions?.Select(s =>
             new ContactSessionMeta(s.IsHost, s.SessionHidden, s.AccessLevel.ToString())

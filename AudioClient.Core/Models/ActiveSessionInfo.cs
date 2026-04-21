@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace AudioClient.Core.Models;
 
 public record ActiveSessionInfo(
@@ -6,5 +8,6 @@ public record ActiveSessionInfo(
     int JoinedUsers,
     int MaximumUsers,
     string AccessLevel,
-    string PreferredUrl
+    string PreferredUrl,
+    IReadOnlyList<string> SessionUsers
 );

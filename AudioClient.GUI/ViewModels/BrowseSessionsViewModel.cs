@@ -30,23 +30,16 @@ public partial class BrowseSessionsViewModel : ObservableObject
     public ObservableCollection<BrowseSessionItemViewModel> Sessions { get; } = new();
 
     public Action? OnRefreshRequested { get; set; }
-    public Action<string>? OnJoinRequested { get; set; }
+    public Action<ActiveSessionInfo>? OnPreviewRequested { get; set; }
 
     [RelayCommand]
     private void Refresh() => OnRefreshRequested?.Invoke();
 
     [RelayCommand]
-    private void Join(BrowseSessionItemViewModel? item)
+    private void Preview(BrowseSessionItemViewModel? item)
     {
         if (item == null) return;
-        OnJoinRequested?.Invoke(item.Url);
-    }
-
-    [RelayCommand]
-    private void JoinSelected()
-    {
-        if (SelectedSession != null)
-            OnJoinRequested?.Invoke(SelectedSession.Url);
+        OnPreviewRequested?.Invoke(item.Info);
     }
 
     public void Update(List<ActiveSessionInfo> sessions, string search = "")

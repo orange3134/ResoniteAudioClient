@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             x:Class="AudioClient.GUI.Views.SessionPreviewPanel"
+             x:DataType="vm:SessionPreviewViewModel"
+             Background="#CC000000">
+
+    <Border Background="{StaticResource BrushBgLight}" CornerRadius="8" Padding="32"
+            MaxWidth="400" MaxHeight="480"
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            BoxShadow="0 8 32 0 #88000000">
+
+        <StackPanel Spacing="16">
+            <!-- Title row -->
+            <Grid>
+                <TextBlock Text="Join Session" Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="14"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Button Content="✕" Command="{Binding CloseCommand}"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                        Padding="4" FontSize="14" />
+            </Grid>
+
+            <!-- Session name -->
+            <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
+                       FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+
+            <!-- Info chips -->
+            <WrapPanel Orientation="Horizontal">
+                <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="Host:" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                        <TextBlock Text="{Binding Host}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                    </StackPanel>
+                </Border>
+                <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding UserCountText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                    </StackPanel>
+                </Border>
+                <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
+                    <TextBlock Text="{Binding AccessLevel}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                </Border>
+            </WrapPanel>
+
+            <!-- User list -->
+            <StackPanel IsVisible="{Binding Users.Count, Converter={x:Static v:NotZeroConverter.Instance}}" Spacing="6">
+                <TextBlock Text="IN SESSION" Foreground="{StaticResource BrushTextMuted}"
+                           FontSize="10" FontWeight="SemiBold" LetterSpacing="1" />
+                <ScrollViewer MaxHeight="120">
+                    <ItemsControl ItemsSource="{Binding Users}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Foreground="{StaticResource BrushTextPrimary}"
+                                           FontSize="12" Margin="0,1" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </StackPanel>
+
+            <!-- Join button -->
+            <Button Content="Join Session" Command="{Binding JoinCommand}"
+                    Background="{StaticResource BrushAccent}" Foreground="White"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Padding="0,10" CornerRadius="4" FontSize="14" FontWeight="SemiBold" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -40,8 +40,31 @@
         <!-- Main 4-column area -->
         <Grid Grid.Row="1" ColumnDefinitions="200,200,*,200">
 
-            <!-- Far Left: Browse Sessions -->
-            <v:BrowseSessionsPanel Grid.Column="0" DataContext="{Binding BrowseSessions}" />
+            <!-- Far Left: tabbed Browse / Contacts -->
+            <Grid Grid.Column="0" RowDefinitions="Auto,*">
+                <!-- Tab header -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,*" Background="{StaticResource BrushBgDark}">
+                    <Button Grid.Column="0" Content="Browse"
+                            Command="{Binding SelectLeftTabCommand}" CommandParameter="Browse"
+                            Background="Transparent"
+                            Foreground="{Binding IsBrowseTabSelected, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='TextPrimary:TextMuted'}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Padding="0,8" FontSize="12" CornerRadius="0" />
+                    <Button Grid.Column="1" Content="Contacts"
+                            Command="{Binding SelectLeftTabCommand}" CommandParameter="Contacts"
+                            Background="Transparent"
+                            Foreground="{Binding IsContactsTabSelected, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='TextPrimary:TextMuted'}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                            Padding="0,8" FontSize="12" CornerRadius="0" />
+                </Grid>
+                <!-- Tab content -->
+                <Border Grid.Row="1" IsVisible="{Binding IsBrowseTabSelected}">
+                    <v:BrowseSessionsPanel DataContext="{Binding BrowseSessions}" />
+                </Border>
+                <Border Grid.Row="1" IsVisible="{Binding IsContactsTabSelected}">
+                    <v:ContactListPanel DataContext="{Binding ContactList}" />
+                </Border>
+            </Grid>
 
             <!-- Left: Session List -->
             <v:SessionListPanel Grid.Column="1" DataContext="{Binding SessionList}" />
@@ -60,6 +83,9 @@
                 <!-- Session detail -->
                 <v:SessionDetailPanel IsVisible="{Binding IsEngineReady}"
                                       DataContext="{Binding SessionDetail}" />
+
+                <!-- Session preview overlay (IsVisible managed by SessionPreviewPanel.axaml.cs) -->
+                <v:SessionPreviewPanel IsVisible="False" DataContext="{Binding SessionPreview}" />
 
                 <!-- Login overlay (IsVisible managed by LoginPanel.axaml.cs via DataContext) -->
                 <v:LoginPanel IsVisible="False" DataContext="{Binding Login}" />

@@ -35,7 +35,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BrowseSessionItemViewModel">
                         <Button Classes="SessionItem"
-                                Command="{Binding $parent[ItemsControl].((vm:BrowseSessionsViewModel)DataContext).JoinCommand}"
+                                Command="{Binding $parent[ItemsControl].((vm:BrowseSessionsViewModel)DataContext).PreviewCommand}"
                                 CommandParameter="{Binding}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                 Background="Transparent" Padding="8,6" CornerRadius="4" Margin="0,1">

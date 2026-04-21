@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             x:Class="AudioClient.GUI.Views.ContactListPanel"
+             x:DataType="vm:ContactListViewModel"
+             Background="{StaticResource BrushBgMid}">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- Contact list -->
+        <ScrollViewer Grid.Row="0">
+            <ItemsControl ItemsSource="{Binding Contacts}" Margin="8,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ContactItemViewModel">
+                        <Button HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Background="Transparent" Padding="6,5" CornerRadius="4" Margin="0,1"
+                                Command="{Binding $parent[ItemsControl].((vm:ContactListViewModel)DataContext).PreviewCommand}"
+                                CommandParameter="{Binding}"
+                                IsEnabled="{Binding HasSession}">
+                            <Grid ColumnDefinitions="Auto,*,Auto" MinHeight="36">
+                                <!-- Status emoji -->
+                                <TextBlock Grid.Column="0" Text="{Binding StatusEmoji}"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+
+                                <!-- Name + session info -->
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Username}"
+                                               Foreground="{StaticResource BrushTextPrimary}"
+                                               FontSize="13" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding SessionName}"
+                                               Foreground="{StaticResource BrushTextMuted}"
+                                               FontSize="11" TextTrimming="CharacterEllipsis"
+                                               IsVisible="{Binding HasSession}" />
+                                </StackPanel>
+
+                                <!-- Join hint arrow (only when in session) -->
+                                <TextBlock Grid.Column="2" Text="›" FontSize="16"
+                                           Foreground="{StaticResource BrushTextMuted}"
+                                           VerticalAlignment="Center" Margin="4,0,0,0"
+                                           IsVisible="{Binding HasSession}" />
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Empty state -->
+        <TextBlock Grid.Row="1" Text="No online contacts"
+                   IsVisible="{Binding !ContactCount}"
+                   Foreground="{StaticResource BrushTextMuted}" FontSize="12"
+                   HorizontalAlignment="Center" Margin="0,12" />
+
+    </Grid>
+</UserControl>

@@ -75,7 +75,9 @@ public class SessionService
             s.SessionURLs?.FirstOrDefault(u => u.StartsWith("lnl-nat://"))
                 ?? s.SessionURLs?.FirstOrDefault(u => u.StartsWith("lnl://"))
                 ?? s.SessionURLs?.FirstOrDefault()
-                ?? "N/A"
+                ?? "N/A",
+            s.SessionUsers?.Select(u => u.Username ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList()
+                ?? new System.Collections.Generic.List<string>()
         )).ToList();
     }
 

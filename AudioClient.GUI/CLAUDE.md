@@ -132,3 +132,24 @@ DataContextChanged += (_, _) =>
 ## BrowseSessionsViewModel のリフレッシュ
 
 `OnRefreshRequested` コールバックは `GetActiveSessions()` を呼んでUIスレッドで `Update()` します。エンジン負荷を考慮し、ユーザー操作（Refresh ボタン）でのみ呼ぶ設計です（自動ポーリングは行わない）。
+
+`GetActiveSessions()` はクラウドAPIへのブロッキング呼び出しのため、UIスレッドから呼ぶと固まります。`OnRefreshRequested` は必ずバックグラウンドスレッドから呼ぶこと。`InitializeEngineAsync` 内（`Task.Run` の中）でコールバックを設定した直後に呼び出せば、バックグラウンドスレッドで実行されます。
+
+Browse タブはデフォルト選択状態で起動するため、エンジン準備完了時に自動リフレッシュが必要です。`InitializeEngineAsync` の末尾（`OnRefreshRequested` を設定した後）で `BrowseSessions.OnRefreshRequested?.Invoke()` を呼んでいます。タブ切り替え時は `SelectLeftTabCommand` で Browse が選ばれた際にも呼びます。
+
+## IsVisible と DataContext を同一要素に設定してはいけない
+
+```xml
+<!-- NG: IsVisible が BrowseSessionsViewModel に対して解決されてしまう -->
+<v:BrowseSessionsPanel IsVisible="{Binding IsBrowseTabSelected}"
+                       DataContext="{Binding BrowseSessions}" />
+```
+
+Avalonia では、`DataContext="{Binding X}"` を設定した要素上の他のバインディングは、変更後の DataContext（`X` の型）に対して解決されます。`IsVisible` のような表示制御バインディングは親の DataContext（`MainViewModel`）で解決したいため、ラッパー要素で分離します。
+
+```xml
+<!-- OK: Border の DataContext は MainViewModel のまま -->
+<Border IsVisible="{Binding IsBrowseTabSelected}">
+    <v:BrowseSessionsPanel DataContext="{Binding BrowseSessions}" />
+</Border>
+```

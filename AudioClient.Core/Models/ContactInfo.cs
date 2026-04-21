@@ -7,7 +7,9 @@ public record ContactInfo(
     string? CurrentSessionName,
     string? CurrentSessionHost,
     int CurrentSessionUsers,
-    int CurrentSessionMaxUsers
+    int CurrentSessionMaxUsers,
+    string? CurrentSessionAccessLevel,
+    string? CurrentSessionUrl
 );
 
 public record ContactSessionMeta(
