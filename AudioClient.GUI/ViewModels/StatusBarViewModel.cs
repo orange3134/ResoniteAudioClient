@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AudioClient.Core.Models;
@@ -17,6 +19,11 @@ public partial class StatusBarViewModel : ObservableObject
     [ObservableProperty] private string _currentVoiceMode = "Normal";
     [ObservableProperty] private bool _isVoiceModePopupOpen = false;
     [ObservableProperty] private bool _isVolumePopupOpen = false;
+    [ObservableProperty] private bool _isInputDevicePopupOpen = false;
+    [ObservableProperty] private bool _isOutputDevicePopupOpen = false;
+
+    public ObservableCollection<DeviceInfo> InputDevices { get; } = new();
+    public ObservableCollection<DeviceInfo> OutputDevices { get; } = new();
 
     public Action? OnToggleMute { get; set; }
     public Action<float>? OnSetVolume { get; set; }
@@ -26,6 +33,10 @@ public partial class StatusBarViewModel : ObservableObject
     public Action<float>? OnSetUIVolume { get; set; }
     public Action<string>? OnSetVoiceMode { get; set; }
     public Action? OnShowLogin { get; set; }
+    public Func<List<DeviceInfo>>? OnGetInputDevices { get; set; }
+    public Func<List<DeviceInfo>>? OnGetOutputDevices { get; set; }
+    public Action<int>? OnSetInputDevice { get; set; }
+    public Action<int>? OnSetOutputDevice { get; set; }
 
     partial void OnIsMutedChanged(bool value)
         => MuteButtonText = value ? "🔇" : "🎤";
@@ -65,6 +76,44 @@ public partial class StatusBarViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleVolumePopup() => IsVolumePopupOpen = !IsVolumePopupOpen;
+
+    [RelayCommand]
+    private void ToggleInputDevicePopup()
+    {
+        if (!IsInputDevicePopupOpen)
+            RefreshDeviceList(InputDevices, OnGetInputDevices);
+        IsInputDevicePopupOpen = !IsInputDevicePopupOpen;
+    }
+
+    [RelayCommand]
+    private void ToggleOutputDevicePopup()
+    {
+        if (!IsOutputDevicePopupOpen)
+            RefreshDeviceList(OutputDevices, OnGetOutputDevices);
+        IsOutputDevicePopupOpen = !IsOutputDevicePopupOpen;
+    }
+
+    [RelayCommand]
+    private void SetInputDevice(int index)
+    {
+        IsInputDevicePopupOpen = false;
+        OnSetInputDevice?.Invoke(index);
+    }
+
+    [RelayCommand]
+    private void SetOutputDevice(int index)
+    {
+        IsOutputDevicePopupOpen = false;
+        OnSetOutputDevice?.Invoke(index);
+    }
+
+    private static void RefreshDeviceList(ObservableCollection<DeviceInfo> target, Func<List<DeviceInfo>>? source)
+    {
+        var devices = source?.Invoke();
+        if (devices == null) return;
+        target.Clear();
+        foreach (var d in devices) target.Add(d);
+    }
 
     [RelayCommand]
     private void SetVoiceMode(string mode)

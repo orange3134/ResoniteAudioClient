@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
              xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             xmlns:models="clr-namespace:AudioClient.Core.Models;assembly=AudioClient.Core"
              x:Class="AudioClient.GUI.Views.StatusBarPanel"
              x:DataType="vm:StatusBarViewModel"
              Background="{StaticResource BrushBgDark}"
@@ -16,21 +17,62 @@
                 FontSize="12" Padding="8,4" VerticalAlignment="Center"
                 ToolTip.Tip="Sign in to Resonite" />
 
-        <!-- Mic group: [🎤 mute] [🟢 voice indicator] [▼ popup toggle] -->
+        <!-- Mic group: [🎤 mute] [▼ input device] [🟢 voice indicator] [▼ voice mode] -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+
+            <!-- Mute button -->
             <Button x:Name="MuteBtn" Content="{Binding MuteButtonText}"
                     Command="{Binding ToggleMuteCommand}"
                     Background="Transparent"
                     Foreground="{Binding IsMuted, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Red:TextPrimary'}"
                     FontSize="18" Padding="6" VerticalAlignment="Center"
                     ToolTip.Tip="Toggle Mute" />
+
+            <!-- Input device dropdown — immediately right of mic icon -->
+            <Button x:Name="InputDeviceBtn" Content="▼" Command="{Binding ToggleInputDevicePopupCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="9" Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Input device" />
+            <!--
+                IsOpen uses TwoWay so that light-dismiss (clicking outside) writes
+                IsInputDevicePopupOpen=false back to the VM.
+            -->
+            <Popup IsOpen="{Binding IsInputDevicePopupOpen, Mode=TwoWay}"
+                   PlacementTarget="{Binding ElementName=InputDeviceBtn}"
+                   Placement="Top" IsLightDismissEnabled="True">
+                <Border Background="{StaticResource BrushBgLight}" CornerRadius="6" Padding="6"
+                        BoxShadow="0 4 16 0 #88000000">
+                    <ScrollViewer MaxHeight="260">
+                        <ItemsControl ItemsSource="{Binding InputDevices}" MinWidth="220">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:DeviceInfo">
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:StatusBarViewModel)DataContext).SetInputDeviceCommand}"
+                                            CommandParameter="{Binding Index}"
+                                            Background="Transparent"
+                                            Foreground="{Binding IsActive, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='TextPrimary:TextMuted'}"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Padding="8,5">
+                                        <Grid ColumnDefinitions="16,*">
+                                            <TextBlock Grid.Column="0" Text="✓" IsVisible="{Binding IsActive}"
+                                                       FontWeight="Bold" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Popup>
+
             <!-- Current voice mode indicator -->
             <TextBlock Text="{Binding VoiceModeLabel}" FontSize="13" VerticalAlignment="Center"
-                       Margin="0,0,2,0" ToolTip.Tip="{Binding CurrentVoiceMode}" />
-            <!-- Voice mode dropdown button — to the RIGHT of the indicator -->
+                       Margin="4,0,2,0" ToolTip.Tip="{Binding CurrentVoiceMode}" />
+
+            <!-- Voice mode dropdown button -->
             <Button Content="▼" Command="{Binding ToggleVoiceModePopupCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="9" Padding="2,0" VerticalAlignment="Center"
+                    FontSize="9" Padding="6" VerticalAlignment="Center"
                     ToolTip.Tip="Voice mode" />
             <!--
                 IsOpen uses TwoWay so that light-dismiss (clicking outside) writes
@@ -63,21 +105,59 @@
                     </StackPanel>
                 </Border>
             </Popup>
+
         </StackPanel>
 
-        <!-- Volume group: [🔊] [master slider] [%] [▼ popup toggle] -->
+        <!-- Volume group: [🔊] [▼ output device] [master slider] [%] [▼ volume details] -->
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4" Margin="8,0">
+
             <TextBlock x:Name="SpeakerIcon" Text="🔊" FontSize="14" VerticalAlignment="Center"
                        Foreground="{StaticResource BrushTextMuted}" />
+
+            <!-- Output device dropdown — immediately right of speaker icon -->
+            <Button x:Name="OutputDeviceBtn" Content="▼" Command="{Binding ToggleOutputDevicePopupCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="9" Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Output device" />
+            <Popup IsOpen="{Binding IsOutputDevicePopupOpen, Mode=TwoWay}"
+                   PlacementTarget="{Binding ElementName=OutputDeviceBtn}"
+                   Placement="Top" IsLightDismissEnabled="True">
+                <Border Background="{StaticResource BrushBgLight}" CornerRadius="6" Padding="6"
+                        BoxShadow="0 4 16 0 #88000000">
+                    <ScrollViewer MaxHeight="260">
+                        <ItemsControl ItemsSource="{Binding OutputDevices}" MinWidth="220">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:DeviceInfo">
+                                    <Button Command="{Binding $parent[ItemsControl].((vm:StatusBarViewModel)DataContext).SetOutputDeviceCommand}"
+                                            CommandParameter="{Binding Index}"
+                                            Background="Transparent"
+                                            Foreground="{Binding IsActive, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='TextPrimary:TextMuted'}"
+                                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                            Padding="8,5">
+                                        <Grid ColumnDefinitions="16,*">
+                                            <TextBlock Grid.Column="0" Text="✓" IsVisible="{Binding IsActive}"
+                                                       FontWeight="Bold" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Name}" />
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Border>
+            </Popup>
+
             <Slider Value="{Binding MasterVolume}" Minimum="0" Maximum="1"
                     Width="90" VerticalAlignment="Center" />
             <TextBlock Text="{Binding MasterVolume, StringFormat={}{0:P0}}"
                        Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" />
+
+            <!-- Volume details dropdown -->
             <Button Content="▼" Command="{Binding ToggleVolumePopupCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="9" Padding="2,0" VerticalAlignment="Center"
+                    FontSize="9" Padding="6" VerticalAlignment="Center"
                     ToolTip.Tip="Volume details" />
-            <!-- Same TwoWay fix as voice mode popup -->
+            <!-- Same TwoWay fix as other popups -->
             <Popup IsOpen="{Binding IsVolumePopupOpen, Mode=TwoWay}"
                    PlacementTarget="{Binding ElementName=SpeakerIcon}"
                    Placement="Top" IsLightDismissEnabled="True">
@@ -115,6 +195,7 @@
                     </StackPanel>
                 </Border>
             </Popup>
+
         </StackPanel>
 
     </Grid>

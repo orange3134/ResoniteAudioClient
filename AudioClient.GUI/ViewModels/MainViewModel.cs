@@ -109,6 +109,10 @@ public partial class MainViewModel : ObservableObject
             StatusBar.OnSetVoiceMode = mode => host.PostToEngine(() => host.Users.SetVoiceMode(mode));
             StatusBar.OnShowLogin = () => _ = Dispatcher.UIThread.InvokeAsync(() =>
                 Login.ShowLogin(host.Auth.IsLoggedIn, host.Auth.CurrentUsername ?? ""));
+            StatusBar.OnGetInputDevices = () => host.Audio.GetInputDevices();
+            StatusBar.OnGetOutputDevices = () => host.Audio.GetOutputDevices();
+            StatusBar.OnSetInputDevice = index => host.PostToEngine(() => host.Audio.SetInputDevice(index));
+            StatusBar.OnSetOutputDevice = index => host.PostToEngine(() => host.Audio.SetOutputDevice(index));
 
             // Browse sessions: click → preview
             BrowseSessions.OnRefreshRequested = () =>
