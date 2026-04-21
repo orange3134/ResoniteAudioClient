@@ -29,13 +29,32 @@ public class UserService
         var world = _engine.WorldManager.FocusedWorld;
         if (world == null || world == Userspace.UserspaceWorld) return new List<UserInfo>();
         var contactIds = new HashSet<string>();
+        var contactIconMap = new Dictionary<string, string?>();
         _engine.Cloud.Contacts.ForeachContactData(cd =>
         {
-            if (cd.Contact.ContactUserId != null) contactIds.Add(cd.Contact.ContactUserId);
+            if (cd.Contact.ContactUserId != null)
+            {
+                contactIds.Add(cd.Contact.ContactUserId);
+                contactIconMap[cd.Contact.ContactUserId] = ToHttpIconUrl(cd.Contact.Profile?.IconUrl);
+            }
         });
         return world.AllUsers.Select(u => new UserInfo(
             u.UserName, u.UserID, u.IsHost, u.IsLocalUser, u.IsPresentInWorld, u.Ping,
-            u.UserID != null && contactIds.Contains(u.UserID))).ToList();
+            u.UserID != null && contactIds.Contains(u.UserID),
+            u.UserID != null ? contactIconMap.GetValueOrDefault(u.UserID) : null)).ToList();
+    }
+
+    private static string? ToHttpIconUrl(string? url)
+    {
+        if (url == null) return null;
+        if (url.StartsWith("resdb:///"))
+        {
+            var path = url.Substring("resdb:///".Length);
+            var dot = path.LastIndexOf('.');
+            if (dot >= 0) path = path.Substring(0, dot);
+            return "https://assets.resonite.com/" + path;
+        }
+        return url;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

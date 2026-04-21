@@ -18,9 +18,26 @@
                                 CommandParameter="{Binding}"
                                 IsEnabled="{Binding HasSession}">
                             <Grid ColumnDefinitions="Auto,*,Auto" MinHeight="36">
-                                <!-- Status emoji -->
-                                <TextBlock Grid.Column="0" Text="{Binding StatusEmoji}"
-                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <!-- User icon + status dot overlay -->
+                                <Grid Grid.Column="0" Width="26" Height="26" Margin="0,0,8,0" VerticalAlignment="Center">
+                                    <!-- Placeholder -->
+                                    <Border CornerRadius="13" Background="{StaticResource BrushBgDark}">
+                                        <TextBlock Text="{Binding IconLetter}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                   FontSize="11" Foreground="{StaticResource BrushTextMuted}" />
+                                    </Border>
+                                    <!-- Loaded image -->
+                                    <Border CornerRadius="13" ClipToBounds="True"
+                                            IsVisible="{Binding IconBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <Image Source="{Binding IconBitmap}" Stretch="UniformToFill" />
+                                    </Border>
+                                    <!-- Status dot: bottom-right overlay -->
+                                    <Border Width="9" Height="9" CornerRadius="4.5"
+                                            HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                            Margin="0,0,-1,-1"
+                                            Background="{Binding StatusBrush}"
+                                            BorderBrush="{StaticResource BrushBgMid}" BorderThickness="1.5" />
+                                </Grid>
 
                                 <!-- Name + session info -->
                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">

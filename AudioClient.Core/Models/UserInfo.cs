@@ -7,5 +7,6 @@ public record UserInfo(
     bool IsLocal,
     bool IsPresentInWorld,
     int Ping,
-    bool IsContact
+    bool IsContact,
+    string? IconUrl = null
 );

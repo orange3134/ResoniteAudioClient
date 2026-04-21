@@ -13,6 +13,7 @@ public class ContactService
 {
     private readonly Engine _engine;
     private List<ContactInfo> _lastContacts = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Task<string?>> _iconUrlCache = new();
 
     public event EventHandler<List<ContactInfo>>? ContactsChanged;
 
@@ -44,7 +45,8 @@ public class ContactService
                 si?.JoinedUsers ?? 0,
                 si?.MaximumUsers ?? 0,
                 si?.AccessLevel.ToString(),
-                sessionUrl));
+                sessionUrl,
+                ToHttpIconUrl(cd.Contact.Profile?.IconUrl)));
         });
         return result;
     }
@@ -70,7 +72,8 @@ public class ContactService
             cd.Contact.ContactUsername, cd.Contact.ContactUserId,
             onlineStatus.ToString(), si?.Name, si?.HostUsername,
             si?.JoinedUsers ?? 0, si?.MaximumUsers ?? 0,
-            si?.AccessLevel.ToString(), sessionUrl2);
+            si?.AccessLevel.ToString(), sessionUrl2,
+            ToHttpIconUrl(cd.Contact.Profile?.IconUrl));
 
         var sessions = status?.Sessions?.Select(s =>
             new ContactSessionMeta(s.IsHost, s.SessionHidden, s.AccessLevel.ToString())
@@ -152,6 +155,32 @@ public class ContactService
             }
         }
         catch { }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public Task<string?> GetUserIconUrlAsync(string userId)
+    {
+        return _iconUrlCache.GetOrAdd(userId, static (uid, svc) => svc.FetchIconUrlAsync(uid), this);
+    }
+
+    private async Task<string?> FetchIconUrlAsync(string userId)
+    {
+        var result = await _engine.Cloud.Users.GetUser(userId).ConfigureAwait(false);
+        if (!result.IsOK) return null;
+        return ToHttpIconUrl(result.Entity?.Profile?.IconUrl);
+    }
+
+    private static string? ToHttpIconUrl(string? url)
+    {
+        if (url == null) return null;
+        if (url.StartsWith("resdb:///"))
+        {
+            var path = url.Substring("resdb:///".Length);
+            var dot = path.LastIndexOf('.');
+            if (dot >= 0) path = path.Substring(0, dot);
+            return "https://assets.resonite.com/" + path;
+        }
+        return url;
     }
 
     private static bool ContactListsEqual(List<ContactInfo> a, List<ContactInfo> b)

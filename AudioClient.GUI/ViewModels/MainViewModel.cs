@@ -135,6 +135,11 @@ public partial class MainViewModel : ObservableObject
             Login.OnLogin = async (u, p) => await host.Auth.LoginAsync(u, p);
             Login.OnLogout = async () => await host.Auth.LogoutAsync();
 
+            // Icon fetch callback (shared for both panels)
+            Func<string, Task<string?>> fetchIcon = userId => host.Contacts.GetUserIconUrlAsync(userId);
+            MemberList.FetchIconUrl = fetchIcon;
+            ContactList.FetchIconUrl = fetchIcon;
+
             // Member list
             MemberList.OnMoveToRequested = item =>
                 host.PostToEngine(() => host.Users.MoveToUser(item.UserName));

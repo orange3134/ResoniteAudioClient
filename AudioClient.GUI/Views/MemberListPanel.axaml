@@ -16,6 +16,10 @@
             <Setter Property="Opacity" Value="1"/>
             <Setter Property="IsHitTestVisible" Value="True"/>
         </Style>
+        <!-- Ensure hover button background is fully opaque -->
+        <Style Selector="StackPanel.HoverActions Button:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource BrushBgHover}"/>
+        </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*">
@@ -41,40 +45,56 @@
                             only active when the mouse is directly over a child element.
                         -->
                         <Grid Classes="MemberRow" Background="Transparent"
-                              Margin="0,2" ColumnDefinitions="Auto,Auto,*,Auto">
+                              Margin="0,2" MinHeight="30" ColumnDefinitions="Auto,Auto,*">
 
-                            <!-- Status dot -->
-                            <TextBlock Grid.Column="0" Text="{Binding StatusDot}"
-                                       Foreground="{Binding IsPresent, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Green:TextMuted'}"
-                                       FontSize="10" VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <!-- User icon + status dot overlay -->
+                            <Grid Grid.Column="0" Width="22" Height="22" Margin="0,0,6,0" VerticalAlignment="Center">
+                                <!-- Placeholder -->
+                                <Border CornerRadius="11" Background="{StaticResource BrushBgDark}">
+                                    <TextBlock Text="{Binding IconLetter}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="9" Foreground="{StaticResource BrushTextMuted}" />
+                                </Border>
+                                <!-- Loaded image -->
+                                <Border CornerRadius="11" ClipToBounds="True"
+                                        IsVisible="{Binding IconBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <Image Source="{Binding IconBitmap}" Stretch="UniformToFill" />
+                                </Border>
+                                <!-- Status dot: bottom-right overlay -->
+                                <Border Width="8" Height="8" CornerRadius="4"
+                                        HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                        Margin="0,0,-1,-1"
+                                        Background="{Binding IsPresent, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Green:TextMuted'}"
+                                        BorderBrush="{StaticResource BrushBgMid}" BorderThickness="1.5" />
+                            </Grid>
 
                             <!-- Contact icon -->
                             <TextBlock Grid.Column="1" Text="👥" FontSize="10" VerticalAlignment="Center"
                                        IsVisible="{Binding IsContact}" Margin="0,0,4,0"
                                        ToolTip.Tip="In your contacts" />
 
-                            <!-- Username -->
-                            <TextBlock Grid.Column="2" Text="{Binding Label}"
-                                       Foreground="{StaticResource BrushTextPrimary}"
-                                       FontSize="13" TextTrimming="CharacterEllipsis"
-                                       VerticalAlignment="Center" />
-
-                            <!-- Hover action buttons (always in layout, opacity-controlled) -->
-                            <StackPanel Grid.Column="3" Classes="HoverActions"
-                                        Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-                                <Button Content="MoveTo"
-                                        Command="{Binding $parent[ItemsControl].((vm:MemberListViewModel)DataContext).MoveToCommand}"
-                                        CommandParameter="{Binding}"
-                                        Background="{StaticResource BrushBgDark}"
-                                        Foreground="{StaticResource BrushTextPrimary}"
-                                        FontSize="10" Padding="4,2" CornerRadius="3" />
-                                <Button Content="Info"
-                                        Command="{Binding $parent[ItemsControl].((vm:MemberListViewModel)DataContext).ShowInfoCommand}"
-                                        CommandParameter="{Binding}"
-                                        Background="{StaticResource BrushBgDark}"
-                                        Foreground="{StaticResource BrushTextPrimary}"
-                                        FontSize="10" Padding="4,2" CornerRadius="3" />
-                            </StackPanel>
+                            <!-- Username + hover buttons (same cell, buttons overlay on right) -->
+                            <Grid Grid.Column="2">
+                                <TextBlock Text="{Binding Label}"
+                                           Foreground="{StaticResource BrushTextPrimary}"
+                                           FontSize="13" VerticalAlignment="Center" />
+                                <StackPanel Classes="HoverActions"
+                                            Orientation="Horizontal" Spacing="2"
+                                            HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Button Content="MoveTo"
+                                            Command="{Binding $parent[ItemsControl].((vm:MemberListViewModel)DataContext).MoveToCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="{StaticResource BrushBgDark}"
+                                            Foreground="{StaticResource BrushTextPrimary}"
+                                            FontSize="10" Padding="4,2" CornerRadius="3" />
+                                    <Button Content="Info"
+                                            Command="{Binding $parent[ItemsControl].((vm:MemberListViewModel)DataContext).ShowInfoCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="{StaticResource BrushBgDark}"
+                                            Foreground="{StaticResource BrushTextPrimary}"
+                                            FontSize="10" Padding="4,2" CornerRadius="3" />
+                                </StackPanel>
+                            </Grid>
 
                         </Grid>
                     </DataTemplate>
