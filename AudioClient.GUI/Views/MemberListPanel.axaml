@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
              xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
              x:Class="AudioClient.GUI.Views.MemberListPanel"
              x:DataType="vm:MemberListViewModel"
              Background="{StaticResource BrushBgMid}">
@@ -78,7 +79,7 @@
 
                             <!-- Username + hover buttons (same cell, buttons overlay on right) -->
                             <Grid Grid.Column="2">
-                                <TextBlock Text="{Binding Label}"
+                                <TextBlock h:ResoniteRichText.Text="{Binding Label}"
                                            Foreground="{StaticResource BrushTextPrimary}"
                                            FontSize="13" VerticalAlignment="Center" />
                                 <StackPanel Classes="HoverActions"

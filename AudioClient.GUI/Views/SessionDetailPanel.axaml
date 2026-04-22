@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
              x:Class="AudioClient.GUI.Views.SessionDetailPanel"
              x:DataType="vm:SessionDetailViewModel"
              Background="{StaticResource BrushBgLight}">
@@ -21,7 +22,7 @@
             <!-- Session Name (editable) -->
             <Grid ColumnDefinitions="*,Auto">
                 <StackPanel Grid.Column="0" IsVisible="{Binding !IsEditingName}">
-                    <TextBlock Text="{Binding SessionName}" Foreground="{StaticResource BrushTextPrimary}"
+                    <TextBlock h:ResoniteRichText.Text="{Binding SessionName}" Foreground="{StaticResource BrushTextPrimary}"
                                FontSize="22" FontWeight="SemiBold" />
                 </StackPanel>
                 <Grid Grid.Column="0" IsVisible="{Binding IsEditingName}" ColumnDefinitions="*,Auto,Auto">

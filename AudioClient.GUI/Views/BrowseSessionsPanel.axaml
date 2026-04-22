@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
              x:Class="AudioClient.GUI.Views.BrowseSessionsPanel"
              x:DataType="vm:BrowseSessionsViewModel"
              Background="{StaticResource BrushBgMid}">
@@ -40,10 +41,10 @@
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                                 Background="Transparent" Padding="8,6" CornerRadius="4" Margin="0,1">
                             <StackPanel Spacing="2">
-                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
+                                <TextBlock h:ResoniteRichText.Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
                                            FontSize="13" TextTrimming="CharacterEllipsis" />
                                 <Grid ColumnDefinitions="*,Auto">
-                                    <TextBlock Grid.Column="0" Text="{Binding Host}"
+                                    <TextBlock Grid.Column="0" h:ResoniteRichText.Text="{Binding Host}"
                                                Foreground="{StaticResource BrushTextMuted}" FontSize="11"
                                                TextTrimming="CharacterEllipsis" />
                                     <TextBlock Grid.Column="1" Text="{Binding Users}"

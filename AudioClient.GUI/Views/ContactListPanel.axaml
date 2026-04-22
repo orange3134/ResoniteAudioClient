@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
              x:Class="AudioClient.GUI.Views.ContactListPanel"
              x:DataType="vm:ContactListViewModel"
              Background="{StaticResource BrushBgMid}">
@@ -41,10 +42,10 @@
 
                                 <!-- Name + session info -->
                                 <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding Username}"
+                                    <TextBlock h:ResoniteRichText.Text="{Binding Username}"
                                                Foreground="{StaticResource BrushTextPrimary}"
                                                FontSize="13" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding SessionName}"
+                                    <TextBlock h:ResoniteRichText.Text="{Binding SessionName}"
                                                Foreground="{StaticResource BrushTextMuted}"
                                                FontSize="11" TextTrimming="CharacterEllipsis"
                                                IsVisible="{Binding HasSession}" />

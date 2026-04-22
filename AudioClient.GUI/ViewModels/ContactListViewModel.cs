@@ -8,6 +8,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AudioClient.Core.Models;
 using AudioClient.GUI.Helpers;
+using static AudioClient.GUI.Helpers.ResoniteRichText;
 
 namespace AudioClient.GUI.ViewModels;
 
@@ -17,7 +18,7 @@ public partial class ContactItemViewModel : ObservableObject
     public string Username => Info.Username;
     public string? SessionName => Info.CurrentSessionName;
     public bool HasSession => Info.CurrentSessionUrl != null;
-    public string IconLetter => Info.Username.Length > 0 ? Info.Username[0].ToString().ToUpperInvariant() : "?";
+    public string IconLetter { get { var s = StripTags(Info.Username); return s.Length > 0 ? s[0].ToString().ToUpperInvariant() : "?"; } }
 
     public ISolidColorBrush StatusBrush { get; }
 

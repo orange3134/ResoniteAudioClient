@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
              xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
              x:Class="AudioClient.GUI.Views.SessionPreviewPanel"
              x:DataType="vm:SessionPreviewViewModel"
              Background="#CC000000">
@@ -24,7 +25,7 @@
             </Grid>
 
             <!-- Session name -->
-            <TextBlock Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
+            <TextBlock h:ResoniteRichText.Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
                        FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
 
             <!-- Info chips -->
@@ -32,7 +33,7 @@
                 <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
                     <StackPanel Orientation="Horizontal" Spacing="4">
                         <TextBlock Text="Host:" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
-                        <TextBlock Text="{Binding Host}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
+                        <TextBlock h:ResoniteRichText.Text="{Binding Host}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
                     </StackPanel>
                 </Border>
                 <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
@@ -54,7 +55,7 @@
                     <ItemsControl ItemsSource="{Binding Users}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <TextBlock Text="{Binding}" Foreground="{StaticResource BrushTextPrimary}"
+                                <TextBlock h:ResoniteRichText.Text="{Binding}" Foreground="{StaticResource BrushTextPrimary}"
                                            FontSize="12" Margin="0,1" />
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>

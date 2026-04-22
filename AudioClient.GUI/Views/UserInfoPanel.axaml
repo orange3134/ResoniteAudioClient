@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
              x:Class="AudioClient.GUI.Views.UserInfoPanel"
              x:DataType="vm:UserInfoViewModel"
              Background="#CC000000">
@@ -25,7 +26,7 @@
             <!-- Username -->
             <StackPanel Spacing="2">
                 <TextBlock Text="Username" Foreground="{StaticResource BrushTextMuted}" FontSize="11" />
-                <TextBlock Text="{Binding UserName}" Foreground="{StaticResource BrushTextPrimary}"
+                <TextBlock h:ResoniteRichText.Text="{Binding UserName}" Foreground="{StaticResource BrushTextPrimary}"
                            FontSize="15" FontWeight="SemiBold" />
             </StackPanel>
 

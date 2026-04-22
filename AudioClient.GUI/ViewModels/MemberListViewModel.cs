@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AudioClient.Core.Models;
 using AudioClient.GUI.Helpers;
+using static AudioClient.GUI.Helpers.ResoniteRichText;
 
 namespace AudioClient.GUI.ViewModels;
 
@@ -21,7 +22,7 @@ public partial class MemberItemViewModel : ObservableObject
     public int Ping { get; }
     public string StatusDot => IsPresent ? "●" : "◌";
     public string Label => IsLocal ? $"{UserName} (You){(IsHost ? " ♔" : "")}" : $"{UserName}{(IsHost ? " ♔" : "")}";
-    public string IconLetter => UserName.Length > 0 ? UserName[0].ToString().ToUpperInvariant() : "?";
+    public string IconLetter { get { var s = StripTags(UserName); return s.Length > 0 ? s[0].ToString().ToUpperInvariant() : "?"; } }
 
     [ObservableProperty] private Bitmap? _iconBitmap;
     [ObservableProperty] private bool _isSpeaking;
