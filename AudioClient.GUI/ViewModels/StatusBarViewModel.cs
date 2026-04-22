@@ -10,6 +10,8 @@ namespace AudioClient.GUI.ViewModels;
 public partial class StatusBarViewModel : ObservableObject
 {
     [ObservableProperty] private bool _isMuted = false;
+    [ObservableProperty] private bool _isMicActive = false;
+    [ObservableProperty] private bool _isSpeakerMuted = false;
     [ObservableProperty] private float _masterVolume = 1f;
     [ObservableProperty] private float _soundEffectVolume = 1f;
     [ObservableProperty] private float _multimediaVolume = 1f;
@@ -21,6 +23,8 @@ public partial class StatusBarViewModel : ObservableObject
     [ObservableProperty] private bool _isVolumePopupOpen = false;
     [ObservableProperty] private bool _isInputDevicePopupOpen = false;
     [ObservableProperty] private bool _isOutputDevicePopupOpen = false;
+
+    private float _savedMasterVolume = 1f;
 
     public ObservableCollection<DeviceInfo> InputDevices { get; } = new();
     public ObservableCollection<DeviceInfo> OutputDevices { get; } = new();
@@ -41,8 +45,17 @@ public partial class StatusBarViewModel : ObservableObject
     partial void OnIsMutedChanged(bool value)
         => MuteButtonText = value ? "🔇" : "🎤";
 
+    partial void OnIsSpeakerMutedChanged(bool value)
+        => OnPropertyChanged(nameof(SpeakerButtonText));
+
+    public string SpeakerButtonText => IsSpeakerMuted ? "🔇" : "🔊";
+
     partial void OnMasterVolumeChanged(float value)
-        => OnSetVolume?.Invoke(value);
+    {
+        if (IsSpeakerMuted && value > 0f)
+            IsSpeakerMuted = false;
+        OnSetVolume?.Invoke(value);
+    }
 
     partial void OnSoundEffectVolumeChanged(float value)
         => OnSetSoundEffectVolume?.Invoke(value);
@@ -58,7 +71,8 @@ public partial class StatusBarViewModel : ObservableObject
 
     public void UpdateVolumes(VolumeInfo vol)
     {
-        MasterVolume = vol.Master;
+        if (!IsSpeakerMuted)
+            MasterVolume = vol.Master;
         SoundEffectVolume = vol.SoundEffect;
         MultimediaVolume = vol.Multimedia;
         VoiceVolume = vol.Voice;
@@ -67,6 +81,22 @@ public partial class StatusBarViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleMute() => OnToggleMute?.Invoke();
+
+    [RelayCommand]
+    private void ToggleSpeakerMute()
+    {
+        if (IsSpeakerMuted)
+        {
+            IsSpeakerMuted = false;
+            MasterVolume = _savedMasterVolume;
+        }
+        else
+        {
+            _savedMasterVolume = MasterVolume > 0f ? MasterVolume : 1f;
+            IsSpeakerMuted = true;
+            MasterVolume = 0f;
+        }
+    }
 
     [RelayCommand]
     private void ShowLogin() => OnShowLogin?.Invoke();

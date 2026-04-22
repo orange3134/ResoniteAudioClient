@@ -87,6 +87,8 @@ public partial class MainViewModel : ObservableObject
                 _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.IsMuted = muted);
             host.Audio.VolumeChanged += (_, vol) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.UpdateVolumes(vol));
+            host.Audio.MicActiveChanged += (_, active) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.IsMicActive = active);
             host.Contacts.ContactsChanged += (_, contacts) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => ContactList.Update(contacts));
 

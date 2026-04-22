@@ -13,6 +13,7 @@ public class BoolToBrushConverter : IValueConverter
     private static readonly Dictionary<string, IBrush> _brushes = new()
     {
         ["Green"] = new SolidColorBrush(Color.Parse("#43b581")),
+        ["GreenDim"] = new SolidColorBrush(Color.Parse("#3043b581")),
         ["TextMuted"] = new SolidColorBrush(Color.Parse("#72767d")),
         ["TextPrimary"] = new SolidColorBrush(Color.Parse("#dcddde")),
         ["Accent"] = new SolidColorBrush(Color.Parse("#7289da")),

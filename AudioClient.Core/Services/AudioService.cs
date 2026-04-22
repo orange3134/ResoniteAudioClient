@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using AudioClient.Core.Models;
+using Elements.Assets;
 using FrooxEngine;
 
 namespace AudioClient.Core.Services;
@@ -11,9 +12,13 @@ public class AudioService
     private readonly Engine _engine;
     private bool _lastMuted;
     private VolumeInfo? _lastVolumes;
+    private volatile float _peakMicLevel = 0f;
+    private bool _lastMicActive = false;
+    private AudioInput? _monitoredInput;
 
     public event EventHandler<bool>? MuteChanged;
     public event EventHandler<VolumeInfo>? VolumeChanged;
+    public event EventHandler<bool>? MicActiveChanged;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal AudioService(Engine engine)
@@ -21,6 +26,31 @@ public class AudioService
         _engine = engine;
         _lastMuted = engine.AudioSystem.IsMuted;
         _lastVolumes = GetVolumes();
+        engine.AudioSystem.DefaultAudioInputChanged += OnDefaultInputChanged;
+        UpdateMonitoredInput(engine.AudioSystem.DefaultAudioInput);
+    }
+
+    private void OnDefaultInputChanged(AudioInput input) => UpdateMonitoredInput(input);
+
+    private void UpdateMonitoredInput(AudioInput? input)
+    {
+        if (_monitoredInput != null)
+            _monitoredInput.NewRawSamples -= OnMicSamples;
+        _monitoredInput = input;
+        if (input != null)
+            input.NewRawSamples += OnMicSamples;
+    }
+
+    private void OnMicSamples(Span<StereoSample> buffer)
+    {
+        float peak = 0f;
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            float a = buffer[i].AbsoluteAmplitude;
+            if (a > peak) peak = a;
+        }
+        if (peak > _peakMicLevel)
+            _peakMicLevel = peak;
     }
 
     public bool IsMuted => _engine.AudioSystem.IsMuted;
@@ -117,6 +147,15 @@ public class AudioService
         {
             _lastVolumes = vol;
             VolumeChanged?.Invoke(this, vol);
+        }
+
+        float micPeak = _peakMicLevel;
+        _peakMicLevel = 0f;
+        bool micActive = micPeak > 0.01f;
+        if (micActive != _lastMicActive)
+        {
+            _lastMicActive = micActive;
+            MicActiveChanged?.Invoke(this, micActive);
         }
     }
 }

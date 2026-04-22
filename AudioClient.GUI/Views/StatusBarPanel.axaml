@@ -20,10 +20,10 @@
         <!-- Mic group: [🎤 mute] [▼ input device] [🟢 voice indicator] [▼ voice mode] -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
 
-            <!-- Mute button -->
+            <!-- Mute button — background glows green when mic input is detected -->
             <Button x:Name="MuteBtn" Content="{Binding MuteButtonText}"
                     Command="{Binding ToggleMuteCommand}"
-                    Background="Transparent"
+                    Background="{Binding IsMicActive, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='GreenDim:Transparent'}"
                     Foreground="{Binding IsMuted, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Red:TextPrimary'}"
                     FontSize="18" Padding="6" VerticalAlignment="Center"
                     ToolTip.Tip="Toggle Mute" />
@@ -111,8 +111,11 @@
         <!-- Volume group: [🔊] [▼ output device] [master slider] [%] [▼ volume details] -->
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4" Margin="8,0">
 
-            <TextBlock x:Name="SpeakerIcon" Text="🔊" FontSize="14" VerticalAlignment="Center"
-                       Foreground="{StaticResource BrushTextMuted}" />
+            <Button x:Name="SpeakerIcon" Content="{Binding SpeakerButtonText}"
+                    Command="{Binding ToggleSpeakerMuteCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="14" Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Toggle Speaker Mute" />
 
             <!-- Output device dropdown — immediately right of speaker icon -->
             <Button x:Name="OutputDeviceBtn" Content="▼" Command="{Binding ToggleOutputDevicePopupCommand}"

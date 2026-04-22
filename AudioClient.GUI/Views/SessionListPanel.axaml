@@ -52,7 +52,8 @@
                         Padding="8,6" CornerRadius="4" FontSize="13" />
 
                 <!-- Template Popup -->
-                <Popup IsOpen="{Binding IsNewSessionPopupOpen}" Placement="Top">
+                <Popup IsOpen="{Binding IsNewSessionPopupOpen, Mode=TwoWay}"
+                       Placement="Top" IsLightDismissEnabled="True">
                     <Border Background="{StaticResource BrushBgLight}" CornerRadius="6"
                             Padding="4" MinWidth="180" BoxShadow="0 4 16 0 #88000000">
                         <StackPanel>
