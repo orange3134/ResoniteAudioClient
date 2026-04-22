@@ -72,6 +72,7 @@ public class EngineHost : IDisposable
             () => Elements.Core.UniLog.Log("Engine ready."));
 
         await engine.Initialize(engineDir, useRenderer: false, options, systemInfo, initProgress);
+        Engine.Config.DisableIntroTutorial = true;
         Userspace.SetupUserspace(engine);
 
         return new EngineHost(engine);
