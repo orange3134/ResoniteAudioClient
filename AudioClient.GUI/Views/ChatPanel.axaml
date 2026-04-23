@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             x:Class="AudioClient.GUI.Views.ChatPanel"
+             x:DataType="vm:ChatViewModel"
+             Background="{StaticResource BrushBgMid}">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1" Padding="12,10">
+            <TextBlock Text="CHAT" Foreground="{StaticResource BrushTextMuted}"
+                       FontSize="11" FontWeight="SemiBold" LetterSpacing="1" />
+        </Border>
+
+        <!-- Message list -->
+        <ScrollViewer Grid.Row="1" Name="MessagesScrollViewer">
+            <ItemsControl ItemsSource="{Binding Posts}" Margin="8,8">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ChatPostItemViewModel">
+                        <Grid ColumnDefinitions="Auto,*" Margin="0,4">
+
+                            <!-- Avatar -->
+                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="16"
+                                    Background="{StaticResource BrushBgDark}"
+                                    Margin="0,0,8,0" VerticalAlignment="Top">
+                                <TextBlock Text="{Binding IconLetter}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           FontSize="13" FontWeight="SemiBold"
+                                           Foreground="{StaticResource BrushTextMuted}" />
+                            </Border>
+
+                            <!-- Content -->
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <!-- Username + time -->
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding Username}"
+                                               Foreground="{StaticResource BrushTextPrimary}"
+                                               FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock Text="{Binding TimeText}"
+                                               Foreground="{StaticResource BrushTextMuted}"
+                                               FontSize="11" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <!-- Text content -->
+                                <TextBlock Text="{Binding TextContent}"
+                                           Foreground="{StaticResource BrushTextPrimary}"
+                                           FontSize="13" TextWrapping="Wrap"
+                                           IsVisible="{Binding HasTextContent}" />
+                                <!-- Image placeholder -->
+                                <Border Background="{StaticResource BrushBgDark}" CornerRadius="4"
+                                        Padding="8,4" IsVisible="{Binding HasImageContent}"
+                                        HorizontalAlignment="Left">
+                                    <TextBlock Text="[Image]" Foreground="{StaticResource BrushTextMuted}"
+                                               FontSize="12" FontStyle="Italic" />
+                                </Border>
+                            </StackPanel>
+
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Input area -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,1,0,0"
+                Padding="8,8">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0"
+                         Text="{Binding InputText, Mode=TwoWay}"
+                         Watermark="メッセージを入力..."
+                         Background="{StaticResource BrushBgDark}"
+                         Foreground="{StaticResource BrushTextPrimary}"
+                         BorderThickness="0" CornerRadius="4" Padding="8,6"
+                         FontSize="13"
+                         Name="InputTextBox"
+                         KeyDown="InputTextBox_KeyDown" />
+                <Button Grid.Column="1"
+                        Content="送信"
+                        Command="{Binding SendCommand}"
+                        Background="{StaticResource BrushAccent}" Foreground="White"
+                        Margin="6,0,0,0" Padding="10,6" CornerRadius="4"
+                        FontSize="13" />
+            </Grid>
+        </Border>
+
+    </Grid>
+</UserControl>

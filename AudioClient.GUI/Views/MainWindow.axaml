@@ -40,8 +40,8 @@
             </Grid>
         </Border>
 
-        <!-- Main 4-column area -->
-        <Grid Grid.Row="1" ColumnDefinitions="200,200,*,200">
+        <!-- Main area: 5 columns — the Chat column (Auto) collapses when not in AudioClientWorld -->
+        <Grid Grid.Row="1" ColumnDefinitions="200,200,*,Auto,200">
 
             <!-- Far Left: tabbed Browse / Contacts -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*">
@@ -97,8 +97,13 @@
                 <v:UserInfoPanel IsVisible="False" DataContext="{Binding UserInfoPopup}" />
             </Grid>
 
-            <!-- Right: Member List -->
-            <v:MemberListPanel Grid.Column="3" DataContext="{Binding MemberList}" />
+            <!-- Column 3: Chat Panel — visible only in AudioClientWorld (Auto column collapses when hidden) -->
+            <Border Grid.Column="3" IsVisible="{Binding IsAudioClientWorld}">
+                <v:ChatPanel Width="280" DataContext="{Binding Chat}" />
+            </Border>
+
+            <!-- Column 4: Member List -->
+            <v:MemberListPanel Grid.Column="4" DataContext="{Binding MemberList}" />
 
         </Grid>
 

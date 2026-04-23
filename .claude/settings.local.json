@@ -4,7 +4,8 @@
       "Bash(xargs grep:*)",
       "Bash(dotnet build:*)",
       "Bash(ls -la c:\\\\\\\\Users\\\\\\\\star_\\\\\\\\AppData\\\\\\\\Roaming\\\\\\\\com.kesomannen.gale\\\\\\\\resonite\\\\\\\\profiles\\\\\\\\AudioClient)",
-      "Bash(dotnet sln *)"
+      "Bash(dotnet sln *)",
+      "Bash(grep -E \"\\\\.\\(cs|csproj|md\\)$\")"
     ]
   }
 }

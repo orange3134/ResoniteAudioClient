@@ -81,6 +81,8 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 ### スレッド安全性
 `FrooxEngine` 内のノード（`world.LocalUser` やコンポーネント）のプロパティを変更する際は、必ず **`world.RunSynchronously(() => { ... })`** 内で行ってください。さもないと `Modifications from a non-locking thread are disallowed!` というエラーが発生します（例外: `engine.AudioSystem` のようなグローバルマネージャーはスレッドセーフな場合があります）。
 
+**`GlobalCoroutineManager.Post` では不十分**: `GlobalCoroutineManager.Post` はエンジンスレッドにアクションをキューするが、ワールドのモディフィケーションロックは取得しない。`Slot.Duplicate()`・`slot.WriteDynamicVariable()`・コンポーネント追加などのワールドデータ変更は `GlobalCoroutineManager.Post` の中からでも `world.RunSynchronously` でラップする必要がある。ラップしないと例外が投げられサイレントに飲み込まれる。
+
 ### クラウド・セッション管理 (`engine.Cloud`)
 - **ログイン**: `engine.Cloud.Session.Login(username, new PasswordLogin(password), secretMachineId, rememberMe: true, totp: null)`
 - **ログアウト**: `engine.Cloud.Session.Logout(isManual: true)`

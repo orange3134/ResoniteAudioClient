@@ -20,6 +20,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _currentUsername = "";
     [ObservableProperty] private bool _isBrowseTabSelected = true;
     [ObservableProperty] private bool _isContactsTabSelected = false;
+    [ObservableProperty] private bool _isAudioClientWorld = false;
 
     public SessionListViewModel SessionList { get; }
     public SessionDetailViewModel SessionDetail { get; }
@@ -30,6 +31,7 @@ public partial class MainViewModel : ObservableObject
     public ContactListViewModel ContactList { get; }
     public SessionPreviewViewModel SessionPreview { get; }
     public UserInfoViewModel UserInfoPopup { get; }
+    public ChatViewModel Chat { get; }
 
     public MainViewModel(string appDir, string engineDir, string[] args)
     {
@@ -42,6 +44,7 @@ public partial class MainViewModel : ObservableObject
         ContactList = new ContactListViewModel();
         SessionPreview = new SessionPreviewViewModel();
         UserInfoPopup = new UserInfoViewModel();
+        Chat = new ChatViewModel();
 
         Task.Run(() => InitializeEngineAsync(appDir, engineDir, args));
     }
@@ -91,6 +94,19 @@ public partial class MainViewModel : ObservableObject
                 _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.IsMicActive = active);
             host.Contacts.ContactsChanged += (_, contacts) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => ContactList.Update(contacts));
+            host.Chat.AudioClientWorldChanged += (_, e) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    IsAudioClientWorld = e.IsAcw;
+                    if (e.IsAcw && e.InitialPosts != null)
+                        Chat.LoadPosts(e.InitialPosts);
+                    else
+                        Chat.ClearPosts();
+                });
+            host.Chat.PostAdded += (_, post) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => Chat.AddPost(post));
+            host.Chat.PostRemoved += (_, slotId) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => Chat.RemovePost(slotId));
 
             // Session list actions
             SessionList.OnFocusRequested = info => host.PostToEngine(() => host.Sessions.FocusWorld(info));
@@ -152,6 +168,10 @@ public partial class MainViewModel : ObservableObject
                     UserInfoPopup.Show(item.UserName, item.UserId, item.IsContact));
             UserInfoPopup.OnAddContact = async (userId, username) =>
                 await host.Contacts.AddContactAsync(userId, username);
+
+            // Chat
+            Chat.OnSendRequested = text =>
+                host.PostToEngine(() => host.Chat.SendTextMessage(text, host.Auth.CurrentUsername ?? "Unknown"));
 
             _ = Dispatcher.UIThread.InvokeAsync(() =>
             {

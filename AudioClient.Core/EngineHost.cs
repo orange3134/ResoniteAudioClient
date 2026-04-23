@@ -22,6 +22,7 @@ public class EngineHost : IDisposable
     public UserService Users { get; }
     public ContactService Contacts { get; }
     public InventoryService Inventory { get; }
+    public ChatService Chat { get; }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private EngineHost(Engine engine)
@@ -33,6 +34,7 @@ public class EngineHost : IDisposable
         Users = new UserService(engine);
         Contacts = new ContactService(engine);
         Inventory = new InventoryService(engine);
+        Chat = new ChatService(engine);
 
         _updateThread = new Thread(UpdateLoop) { Name = "Engine Update Loop", IsBackground = false };
         _updateThread.Start();
@@ -118,6 +120,7 @@ public class EngineHost : IDisposable
             Sessions.Refresh();
             Users.Refresh();
             Contacts.Refresh();
+            Chat.Refresh();
         }
         catch { }
     }
