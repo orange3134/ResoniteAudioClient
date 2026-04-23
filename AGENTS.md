@@ -84,7 +84,9 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 ### DynamicVariable の同期タイミング
 リモートユーザーが作成・複製した Slot は、`ChildAdded` が発火した時点で子 Slot、コンポーネント、`DynamicVariableSpace` への登録、`DynamicValueVariable<T>.Value` の同期がすべて完了しているとは限りません。`DynamicVariableSpace.TryReadValue<T>()` は readable な変数が space に登録済みでないと `false` / default を返すため、受信直後に空値を UI に確定しないでください。実値が読めるまで数フレーム以上リトライするか、必要に応じて `DynamicValueVariable<T>` コンポーネントの `Value` を直接読むフォールバックを用意します。
 
-`Texture2D` は `IWorldElement` ではなく asset なので `DynamicReferenceVariable<Texture2D>` としては扱えません。DynamicVariable で画像を受け渡す場合は `StaticTexture2D` や `ITexture2DProvider` などの provider コンポーネント参照として読み、`((IAssetProvider<ITexture2D>)provider).Asset` や `StaticTexture2D.URL` から実体 URL を辿ります。
+`Texture2D` は `IWorldElement` ではなく asset なので `DynamicReferenceVariable<Texture2D>` としては扱えません。AudioClientWorld のチャット画像 (`Content/Type == "Image"`) は `Content/Content` に `IAssetProvider<Texture2D>` として入っているため、provider 参照を読み、`provider.Asset.AssetURL` から実体 URL を辿ります。
+
+DynamicVariable の読み取りは型完全一致です。`Content/Content` の画像 provider を読むときは `IAssetProvider<Texture2D>` で読む必要があります。
 
 チャットなどでユーザーアイコンを表示する場合、投稿 Slot 内にアイコン URL が入っているとは限りません。投稿者名から `world.AllUsers` の `UserID` を解決し、MemberList と同じ Cloud profile 取得 (`Contacts.GetUserIconUrlAsync`) で補完すると表示できるケースが多いです。
 

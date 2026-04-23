@@ -320,36 +320,17 @@ public class ChatService
 
     private static string? TryReadTextureUrl(DynamicVariableSpace space, string name)
     {
-        if (TryReadDynamicReference<StaticTexture2D>(space, name, out var staticTexture))
+        if (TryReadDynamicReference<IAssetProvider<Texture2D>>(space, name, out var texture2DProvider))
         {
-            var url = ToHttpAssetUrl(staticTexture?.URL.Value);
-            if (url != null) return url;
-        }
-
-        if (TryReadDynamicReference<ITexture2DProvider>(space, name, out var textureProvider))
-        {
-            var url = ToHttpAssetUrl(GetProviderAssetUrl(textureProvider));
-            if (url != null) return url;
-        }
-
-        if (TryReadDynamicReference<IAssetProvider<ITexture2D>>(space, name, out var assetProvider))
-        {
-            var url = ToHttpAssetUrl(GetProviderAssetUrl(assetProvider));
-            if (url != null) return url;
-        }
-
-        if (TryReadDynamicReference<Slot>(space, name, out var slot) && slot != null)
-        {
-            var texture = slot.GetComponentInChildren<StaticTexture2D>();
-            var url = ToHttpAssetUrl(texture?.URL.Value);
+            var url = ToHttpAssetUrl(GetProviderAssetUrl(texture2DProvider));
             if (url != null) return url;
         }
 
         return null;
     }
 
-    private static Uri? GetProviderAssetUrl(IAssetProvider<ITexture2D>? provider)
-        => (provider?.Asset as Asset)?.AssetURL;
+    private static Uri? GetProviderAssetUrl(IAssetProvider<Texture2D>? provider)
+        => provider?.Asset?.AssetURL;
 
     private static bool TryReadDynamicReference<T>(DynamicVariableSpace space, string name, out T? value)
         where T : class, IWorldElement
