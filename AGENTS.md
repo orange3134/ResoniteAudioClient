@@ -81,6 +81,9 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 ### スレッド安全性
 `FrooxEngine` 内のノード（`world.LocalUser` やコンポーネント）のプロパティを変更する際は、必ず **`world.RunSynchronously(() => { ... })`** 内で行ってください。さもないと `Modifications from a non-locking thread are disallowed!` というエラーが発生します（例外: `engine.AudioSystem` のようなグローバルマネージャーはスレッドセーフな場合があります）。
 
+### DynamicVariable の同期タイミング
+リモートユーザーが作成・複製した Slot は、`ChildAdded` が発火した時点で子 Slot、コンポーネント、`DynamicVariableSpace` への登録、`DynamicValueVariable<T>.Value` の同期がすべて完了しているとは限りません。`DynamicVariableSpace.TryReadValue<T>()` は readable な変数が space に登録済みでないと `false` / default を返すため、受信直後に空値を UI に確定しないでください。実値が読めるまで数フレーム以上リトライするか、必要に応じて `DynamicValueVariable<T>` コンポーネントの `Value` を直接読むフォールバックを用意します。
+
 ### クラウド・セッション管理 (`engine.Cloud`)
 - **ログイン**: `engine.Cloud.Session.Login(username, new PasswordLogin(password), secretMachineId, rememberMe: true, totp: null)`
 - **ログアウト**: `engine.Cloud.Session.Logout(isManual: true)`

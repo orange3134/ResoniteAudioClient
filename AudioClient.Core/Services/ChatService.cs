@@ -8,6 +8,8 @@ namespace AudioClient.Core.Services;
 
 public class ChatService
 {
+    private const int PostReadMaxAttempts = 120;
+
     private readonly Engine _engine;
     private Slot? _postListSlot;
     private Slot? _prefPostElement;
@@ -137,16 +139,24 @@ public class ChatService
 
     private void OnPostAdded(Slot parent, Slot child)
     {
-        // First tick: let SpaceName → CurrentName (UpdateName) run
-        // Second tick: let DynamicValueVariable.UpdateLinking register values into the space
+        SchedulePostAdded(child, 0);
+    }
+
+    private void SchedulePostAdded(Slot child, int attempt)
+    {
         _engine.GlobalCoroutineManager.Post(_ =>
         {
-            _engine.GlobalCoroutineManager.Post(_ =>
+            if (child.IsRemoved || _postListSlot == null || child.Parent != _postListSlot) return;
+
+            var post = ParsePost(child);
+            if (post != null && IsPostReady(post))
             {
-                if (child.IsRemoved || _postListSlot == null) return;
-                var post = ParsePost(child);
-                if (post != null) PostAdded?.Invoke(this, post);
-            }, null!);
+                PostAdded?.Invoke(this, post);
+                return;
+            }
+
+            if (attempt < PostReadMaxAttempts)
+                SchedulePostAdded(child, attempt + 1);
         }, null!);
     }
 
@@ -174,10 +184,10 @@ public class ChatService
             var space = slot.GetComponent<DynamicVariableSpace>(s => s.SpaceName.Value == "PostElement");
             if (space == null) return null;
 
-            space.TryReadValue<DateTime>("Time", out var time);
-            space.TryReadValue<string>("MachineID", out var machineId);
-            space.TryReadValue<string>("Username", out var username);
-            space.TryReadValue<Uri>("IconUrl", out var iconUri);
+            TryReadDynamicValue(space, "Time", out DateTime time);
+            TryReadDynamicValue(space, "MachineID", out string? machineId);
+            TryReadDynamicValue(space, "Username", out string? username);
+            TryReadDynamicValue(space, "IconUrl", out Uri? iconUri);
 
             var contents = new List<ChatContent>();
             foreach (var contentSlot in slot.Children)
@@ -186,10 +196,10 @@ public class ChatService
                     s => s.SpaceName.Value == "Content");
                 if (cs == null) continue;
 
-                cs.TryReadValue<string>("Type", out var type);
+                TryReadDynamicValue(cs, "Type", out string? type);
                 if (type == "Text")
                 {
-                    cs.TryReadValue<string>("Content", out var text);
+                    TryReadDynamicValue(cs, "Content", out string? text);
                     contents.Add(new ChatContent("Text", text, null));
                 }
                 else if (type == "Image")
@@ -207,5 +217,49 @@ public class ChatService
                 contents);
         }
         catch { return null; }
+    }
+
+    private static bool IsPostReady(ChatPostInfo post)
+    {
+        if (string.IsNullOrWhiteSpace(post.Username)) return false;
+        if (post.Contents.Count == 0) return false;
+
+        foreach (var content in post.Contents)
+        {
+            if (content.Type == "Text" && string.IsNullOrEmpty(content.Text))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadDynamicValue<T>(DynamicVariableSpace space, string name, out T? value)
+    {
+        if (space.TryReadValue<T>(name, out var spaceValue))
+        {
+            value = spaceValue;
+            return true;
+        }
+
+        var variable = space.Slot.GetComponent<DynamicValueVariable<T>>(
+            v => IsVariableNameMatch(v.VariableName.Value, space, name))
+            ?? space.Slot.GetComponentInChildren<DynamicValueVariable<T>>(
+                v => IsVariableNameMatch(v.VariableName.Value, space, name));
+
+        if (variable != null)
+        {
+            value = variable.Value.Value;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static bool IsVariableNameMatch(string rawName, DynamicVariableSpace space, string name)
+    {
+        DynamicVariableHelper.ParsePath(rawName, out var spaceName, out var variableName);
+        if (variableName != DynamicVariableHelper.ProcessName(name)) return false;
+        return string.IsNullOrWhiteSpace(spaceName) || spaceName == space.CurrentName;
     }
 }
