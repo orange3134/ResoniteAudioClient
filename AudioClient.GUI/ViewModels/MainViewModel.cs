@@ -72,6 +72,12 @@ public partial class MainViewModel : ObservableObject
 
             _host = host;
 
+            // Icon fetch callback (shared for member/contact/chat panels)
+            Func<string, Task<string?>> fetchIcon = userId => host.Contacts.GetUserIconUrlAsync(userId);
+            MemberList.FetchIconUrl = fetchIcon;
+            ContactList.FetchIconUrl = fetchIcon;
+            Chat.FetchIconUrl = fetchIcon;
+
             host.Auth.LoginStateChanged += (_, loggedIn) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => OnLoginStateChanged(loggedIn));
             host.Sessions.SessionListChanged += (_, sessions) =>
@@ -154,11 +160,6 @@ public partial class MainViewModel : ObservableObject
             // Login
             Login.OnLogin = async (u, p, t) => await host.Auth.LoginAsync(u, p, t);
             Login.OnLogout = async () => await host.Auth.LogoutAsync();
-
-            // Icon fetch callback (shared for both panels)
-            Func<string, Task<string?>> fetchIcon = userId => host.Contacts.GetUserIconUrlAsync(userId);
-            MemberList.FetchIconUrl = fetchIcon;
-            ContactList.FetchIconUrl = fetchIcon;
 
             // Member list
             MemberList.OnMoveToRequested = item =>

@@ -10,5 +10,6 @@ public record ChatPostInfo(
     DateTime Time,
     string MachineId,
     string Username,
+    string? UserId,
     string? IconUrl,
     List<ChatContent> Contents);

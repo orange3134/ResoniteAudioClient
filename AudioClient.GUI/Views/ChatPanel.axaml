@@ -22,14 +22,19 @@
                         <Grid ColumnDefinitions="Auto,*" Margin="0,4">
 
                             <!-- Avatar -->
-                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="16"
-                                    Background="{StaticResource BrushBgDark}"
-                                    Margin="0,0,8,0" VerticalAlignment="Top">
-                                <TextBlock Text="{Binding IconLetter}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"
-                                           FontSize="13" FontWeight="SemiBold"
-                                           Foreground="{StaticResource BrushTextMuted}" />
-                            </Border>
+                            <Grid Grid.Column="0" Width="32" Height="32"
+                                  Margin="0,0,8,0" VerticalAlignment="Top">
+                                <Border CornerRadius="16" Background="{StaticResource BrushBgDark}">
+                                    <TextBlock Text="{Binding IconLetter}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="13" FontWeight="SemiBold"
+                                               Foreground="{StaticResource BrushTextMuted}" />
+                                </Border>
+                                <Border CornerRadius="16" ClipToBounds="True"
+                                        IsVisible="{Binding IconBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <Image Source="{Binding IconBitmap}" Stretch="UniformToFill" />
+                                </Border>
+                            </Grid>
 
                             <!-- Content -->
                             <StackPanel Grid.Column="1" Spacing="2">
@@ -47,13 +52,28 @@
                                            Foreground="{StaticResource BrushTextPrimary}"
                                            FontSize="13" TextWrapping="Wrap"
                                            IsVisible="{Binding HasTextContent}" />
-                                <!-- Image placeholder -->
-                                <Border Background="{StaticResource BrushBgDark}" CornerRadius="4"
-                                        Padding="8,4" IsVisible="{Binding HasImageContent}"
-                                        HorizontalAlignment="Left">
-                                    <TextBlock Text="[Image]" Foreground="{StaticResource BrushTextMuted}"
-                                               FontSize="12" FontStyle="Italic" />
-                                </Border>
+                                <!-- Images -->
+                                <ItemsControl ItemsSource="{Binding Contents}"
+                                              IsVisible="{Binding HasImageContent}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ChatContentItemViewModel">
+                                            <Border Background="{StaticResource BrushBgDark}" CornerRadius="6"
+                                                    ClipToBounds="True" Margin="0,4,0,0"
+                                                    HorizontalAlignment="Left"
+                                                    IsVisible="{Binding IsImage}">
+                                                <Grid>
+                                                    <TextBlock Text="[Image]" Foreground="{StaticResource BrushTextMuted}"
+                                                               FontSize="12" FontStyle="Italic" Margin="8,4"
+                                                               IsVisible="{Binding ImageBitmap, Converter={x:Static ObjectConverters.IsNull}}" />
+                                                    <Image Source="{Binding ImageBitmap}"
+                                                           MaxWidth="320" MaxHeight="240"
+                                                           Stretch="Uniform"
+                                                           IsVisible="{Binding ImageBitmap, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
 
                         </Grid>

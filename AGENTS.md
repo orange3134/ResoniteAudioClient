@@ -84,6 +84,10 @@ SteamAudioの `phonon.dll` 等のネイティブDLLは `runtimes/win-x64/native/
 ### DynamicVariable の同期タイミング
 リモートユーザーが作成・複製した Slot は、`ChildAdded` が発火した時点で子 Slot、コンポーネント、`DynamicVariableSpace` への登録、`DynamicValueVariable<T>.Value` の同期がすべて完了しているとは限りません。`DynamicVariableSpace.TryReadValue<T>()` は readable な変数が space に登録済みでないと `false` / default を返すため、受信直後に空値を UI に確定しないでください。実値が読めるまで数フレーム以上リトライするか、必要に応じて `DynamicValueVariable<T>` コンポーネントの `Value` を直接読むフォールバックを用意します。
 
+`Texture2D` は `IWorldElement` ではなく asset なので `DynamicReferenceVariable<Texture2D>` としては扱えません。DynamicVariable で画像を受け渡す場合は `StaticTexture2D` や `ITexture2DProvider` などの provider コンポーネント参照として読み、`((IAssetProvider<ITexture2D>)provider).Asset` や `StaticTexture2D.URL` から実体 URL を辿ります。
+
+チャットなどでユーザーアイコンを表示する場合、投稿 Slot 内にアイコン URL が入っているとは限りません。投稿者名から `world.AllUsers` の `UserID` を解決し、MemberList と同じ Cloud profile 取得 (`Contacts.GetUserIconUrlAsync`) で補完すると表示できるケースが多いです。
+
 ### クラウド・セッション管理 (`engine.Cloud`)
 - **ログイン**: `engine.Cloud.Session.Login(username, new PasswordLogin(password), secretMachineId, rememberMe: true, totp: null)`
 - **ログアウト**: `engine.Cloud.Session.Logout(isManual: true)`

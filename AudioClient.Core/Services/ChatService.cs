@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using AudioClient.Core.Models;
 using FrooxEngine;
@@ -187,7 +188,8 @@ public class ChatService
             TryReadDynamicValue(space, "Time", out DateTime time);
             TryReadDynamicValue(space, "MachineID", out string? machineId);
             TryReadDynamicValue(space, "Username", out string? username);
-            TryReadDynamicValue(space, "IconUrl", out Uri? iconUri);
+            var userId = ResolveUserId(slot.World, username);
+            var iconUrl = TryReadIconUrl(space);
 
             var contents = new List<ChatContent>();
             foreach (var contentSlot in slot.Children)
@@ -204,7 +206,8 @@ public class ChatService
                 }
                 else if (type == "Image")
                 {
-                    contents.Add(new ChatContent("Image", null, null));
+                    var imageUrl = TryReadImageUrl(cs);
+                    contents.Add(new ChatContent("Image", null, imageUrl));
                 }
             }
 
@@ -213,7 +216,8 @@ public class ChatService
                 time,
                 machineId ?? "",
                 username ?? "",
-                iconUri?.ToString(),
+                userId,
+                iconUrl,
                 contents);
         }
         catch { return null; }
@@ -261,5 +265,129 @@ public class ChatService
         DynamicVariableHelper.ParsePath(rawName, out var spaceName, out var variableName);
         if (variableName != DynamicVariableHelper.ProcessName(name)) return false;
         return string.IsNullOrWhiteSpace(spaceName) || spaceName == space.CurrentName;
+    }
+
+    private static string? ResolveUserId(World world, string? username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return null;
+
+        var user = world.AllUsers.FirstOrDefault(u =>
+            string.Equals(u.UserName, username, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(u.SanitizedUsername, username, StringComparison.OrdinalIgnoreCase));
+
+        return user?.UserID;
+    }
+
+    private static string? TryReadIconUrl(DynamicVariableSpace space)
+    {
+        foreach (var name in new[] { "IconUri", "IconURI", "IconURL", "IconUrl", "Icon", "UserIcon", "ProfileIcon" })
+        {
+            if (TryReadDynamicValue(space, name, out Uri? uri))
+            {
+                var url = ToHttpAssetUrl(uri);
+                if (url != null) return url;
+            }
+
+            if (TryReadDynamicValue(space, name, out string? rawUrl))
+            {
+                var url = ToHttpAssetUrl(rawUrl);
+                if (url != null) return url;
+            }
+
+            var providerUrl = TryReadTextureUrl(space, name);
+            if (providerUrl != null) return providerUrl;
+        }
+
+        return null;
+    }
+
+    private static string? TryReadImageUrl(DynamicVariableSpace space)
+    {
+        foreach (var name in new[] { "Content", "Image", "Texture", "Texture2D" })
+        {
+            var providerUrl = TryReadTextureUrl(space, name);
+            if (providerUrl != null) return providerUrl;
+        }
+
+        if (TryReadDynamicValue(space, "Content", out Uri? uri))
+            return ToHttpAssetUrl(uri);
+
+        if (TryReadDynamicValue(space, "Content", out string? rawUrl))
+            return ToHttpAssetUrl(rawUrl);
+
+        return null;
+    }
+
+    private static string? TryReadTextureUrl(DynamicVariableSpace space, string name)
+    {
+        if (TryReadDynamicReference<StaticTexture2D>(space, name, out var staticTexture))
+        {
+            var url = ToHttpAssetUrl(staticTexture?.URL.Value);
+            if (url != null) return url;
+        }
+
+        if (TryReadDynamicReference<ITexture2DProvider>(space, name, out var textureProvider))
+        {
+            var url = ToHttpAssetUrl(GetProviderAssetUrl(textureProvider));
+            if (url != null) return url;
+        }
+
+        if (TryReadDynamicReference<IAssetProvider<ITexture2D>>(space, name, out var assetProvider))
+        {
+            var url = ToHttpAssetUrl(GetProviderAssetUrl(assetProvider));
+            if (url != null) return url;
+        }
+
+        if (TryReadDynamicReference<Slot>(space, name, out var slot) && slot != null)
+        {
+            var texture = slot.GetComponentInChildren<StaticTexture2D>();
+            var url = ToHttpAssetUrl(texture?.URL.Value);
+            if (url != null) return url;
+        }
+
+        return null;
+    }
+
+    private static Uri? GetProviderAssetUrl(IAssetProvider<ITexture2D>? provider)
+        => (provider?.Asset as Asset)?.AssetURL;
+
+    private static bool TryReadDynamicReference<T>(DynamicVariableSpace space, string name, out T? value)
+        where T : class, IWorldElement
+    {
+        if (space.TryReadValue<T>(name, out var spaceValue))
+        {
+            value = spaceValue;
+            return true;
+        }
+
+        var variable = space.Slot.GetComponent<DynamicReferenceVariable<T>>(
+            v => IsVariableNameMatch(v.VariableName.Value, space, name))
+            ?? space.Slot.GetComponentInChildren<DynamicReferenceVariable<T>>(
+                v => IsVariableNameMatch(v.VariableName.Value, space, name));
+
+        if (variable != null)
+        {
+            value = variable.Reference.Target;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static string? ToHttpAssetUrl(Uri? uri) => ToHttpAssetUrl(uri?.ToString());
+
+    private static string? ToHttpAssetUrl(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        if (url.StartsWith("resdb:///", StringComparison.OrdinalIgnoreCase))
+        {
+            var path = url.Substring("resdb:///".Length);
+            var dot = path.LastIndexOf('.');
+            if (dot >= 0) path = path.Substring(0, dot);
+            return "https://assets.resonite.com/" + path;
+        }
+
+        return url;
     }
 }
