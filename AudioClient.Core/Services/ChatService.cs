@@ -16,7 +16,6 @@ public class ChatService
     private Slot? _prefPostElement;
     private Slot? _prefContentText;
     private World? _lastWorld;
-    private readonly string _machineId;
 
     public bool IsAudioClientWorld { get; private set; }
 
@@ -29,7 +28,6 @@ public class ChatService
     internal ChatService(Engine engine)
     {
         _engine = engine;
-        _machineId = Environment.MachineName;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -40,18 +38,25 @@ public class ChatService
         var postListSlot = _postListSlot;
         var prefPostElement = _prefPostElement;
         var prefContentText = _prefContentText;
-        var machineId = _machineId;
+
+        // engine.Cloud はスレッドセーフなので RunSynchronously の外で読む
+        var iconUrlString = _engine.Cloud.CurrentUser?.Profile?.IconUrl;
+        Uri.TryCreate(iconUrlString, UriKind.Absolute, out var iconUri);
 
         // Slot.Duplicate と WriteDynamicVariable はワールドのモディフィケーションロックが必要
         postListSlot.World.RunSynchronously(() =>
         {
             if (postListSlot.IsRemoved || prefPostElement.IsRemoved || prefContentText.IsRemoved) return;
 
+            var world = postListSlot.World;
             var postSlot = prefPostElement.Duplicate(postListSlot);
             postSlot.PersistentSelf = false;
+            postSlot.OrderOffset = (long)(world.Time.WorldTime * 100);
             postSlot.WriteDynamicVariable("PostElement/Time", DateTime.UtcNow);
-            postSlot.WriteDynamicVariable("PostElement/MachineID", machineId);
+            postSlot.WriteDynamicVariable("PostElement/MachineID", world.LocalUser?.MachineID ?? "");
             postSlot.WriteDynamicVariable("PostElement/Username", username);
+            if (iconUri != null)
+                postSlot.WriteDynamicVariable("PostElement/IconUri", iconUri);
 
             var contentSlot = prefContentText.Duplicate(postSlot);
             contentSlot.PersistentSelf = false;
