@@ -302,13 +302,13 @@ public class ChatService
         {
             if (TryReadDynamicValue(space, name, out Uri? uri))
             {
-                var url = ToHttpAssetUrl(uri);
+                var url = ToAssetUrl(uri);
                 if (url != null) return url;
             }
 
             if (TryReadDynamicValue(space, name, out string? rawUrl))
             {
-                var url = ToHttpAssetUrl(rawUrl);
+                var url = ToAssetUrl(rawUrl);
                 if (url != null) return url;
             }
 
@@ -324,28 +324,15 @@ public class ChatService
         foreach (var name in new[] { "Content", "Image", "Texture", "Texture2D" })
         {
             var providerUrl = TryReadTextureUrl(space, name);
-            if (providerUrl != null)
-            {
-                Elements.Core.UniLog.Log($"[ChatService] TryReadImageUrl: resolved via texture provider ({name}) → {providerUrl}");
-                return providerUrl;
-            }
+            if (providerUrl != null) return providerUrl;
         }
 
         if (TryReadDynamicValue(space, "Content", out Uri? uri))
-        {
-            var url = ToHttpAssetUrl(uri);
-            Elements.Core.UniLog.Log($"[ChatService] TryReadImageUrl: resolved via Uri variable → {url}");
-            return url;
-        }
+            return ToAssetUrl(uri);
 
         if (TryReadDynamicValue(space, "Content", out string? rawUrl))
-        {
-            var url = ToHttpAssetUrl(rawUrl);
-            Elements.Core.UniLog.Log($"[ChatService] TryReadImageUrl: resolved via string variable → {url}");
-            return url;
-        }
+            return ToAssetUrl(rawUrl);
 
-        Elements.Core.UniLog.Log("[ChatService] TryReadImageUrl: all paths failed, returning null");
         return null;
     }
 
@@ -353,18 +340,9 @@ public class ChatService
     {
         if (TryReadDynamicReference<IAssetProvider<Texture2D>>(space, name, out var texture2DProvider))
         {
-            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): provider={texture2DProvider?.GetType().Name ?? "null"}, isStatic={texture2DProvider is IStaticAssetProvider}");
-            var providerUri = GetProviderAssetUrl(texture2DProvider);
-            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): providerUri={providerUri}, assetUrl={texture2DProvider?.Asset?.AssetURL}");
-            var url = ToHttpAssetUrl(providerUri);
-            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): httpUrl={url}");
+            var url = ToAssetUrl(GetProviderAssetUrl(texture2DProvider));
             if (url != null) return url;
         }
-        else
-        {
-            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): no IAssetProvider<Texture2D> found");
-        }
-
         return null;
     }
 
@@ -402,9 +380,9 @@ public class ChatService
         return false;
     }
 
-    private static string? ToHttpAssetUrl(Uri? uri) => ToHttpAssetUrl(uri?.ToString());
+    private static string? ToAssetUrl(Uri? uri) => ToAssetUrl(uri?.ToString());
 
-    private static string? ToHttpAssetUrl(string? url)
+    private static string? ToAssetUrl(string? url)
     {
         if (string.IsNullOrWhiteSpace(url)) return null;
         if (url.StartsWith("resdb:///", StringComparison.OrdinalIgnoreCase))
@@ -414,7 +392,20 @@ public class ChatService
             if (dot >= 0) path = path.Substring(0, dot);
             return "https://assets.resonite.com/" + path;
         }
-
+        // local:// はそのまま保持（P2P経由でエンジン経由フェッチ）
         return url;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public async Task<byte[]?> FetchLocalImageAsync(string url)
+    {
+        try
+        {
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+            var filePath = await _engine.AssetManager.GatherAssetFile(uri, 0f).ConfigureAwait(false);
+            if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return null;
+            return await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
+        }
+        catch { return null; }
     }
 }

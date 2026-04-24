@@ -21,6 +21,7 @@ public partial class ChatViewModel : ObservableObject
 
     public Action<string>? OnSendRequested { get; set; }
     public Func<string, Task<string?>>? FetchIconUrl { get; set; }
+    public Func<string, Task<byte[]?>>? FetchLocalImage { get; set; }
 
     [RelayCommand]
     private void Send()
@@ -35,14 +36,14 @@ public partial class ChatViewModel : ObservableObject
     {
         Posts.Clear();
         foreach (var post in posts)
-            Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl));
+            Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage));
     }
 
     public void AddPost(ChatPostInfo post)
     {
         // Avoid duplicates (e.g. our own send already visible via ChildAdded)
         if (Posts.Any(p => p.SlotId == post.SlotId)) return;
-        Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl));
+        Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage));
     }
 
     public void RemovePost(string slotId)
@@ -74,7 +75,10 @@ public partial class ChatPostItemViewModel : ObservableObject
 
     private readonly Func<string, Task<string?>>? _fetchIconUrl;
 
-    public ChatPostItemViewModel(ChatPostInfo post, Func<string, Task<string?>>? fetchIconUrl)
+    public ChatPostItemViewModel(
+        ChatPostInfo post,
+        Func<string, Task<string?>>? fetchIconUrl,
+        Func<string, Task<byte[]?>>? fetchLocalImage)
     {
         SlotId = post.SlotId;
         Username = post.Username;
@@ -84,7 +88,7 @@ public partial class ChatPostItemViewModel : ObservableObject
         IconLetter = string.IsNullOrEmpty(plainUsername) ? "?" : plainUsername[0].ToString().ToUpperInvariant();
         TimeText = post.Time.ToLocalTime().ToString("HH:mm");
         IconUrl = post.IconUrl;
-        Contents = post.Contents.Select(c => new ChatContentItemViewModel(c)).ToList();
+        Contents = post.Contents.Select(c => new ChatContentItemViewModel(c, fetchLocalImage)).ToList();
         _ = LoadIconAsync();
     }
 
@@ -107,20 +111,34 @@ public partial class ChatContentItemViewModel : ObservableObject
 
     [ObservableProperty] private Bitmap? _imageBitmap;
 
-    public ChatContentItemViewModel(ChatContent content)
+    private readonly Func<string, Task<byte[]?>>? _fetchLocalImage;
+
+    public ChatContentItemViewModel(ChatContent content, Func<string, Task<byte[]?>>? fetchLocalImage = null)
     {
         Type = content.Type;
         Text = content.Text;
         ImageUrl = content.ImageUrl;
+        _fetchLocalImage = fetchLocalImage;
         if (IsImage)
             _ = LoadImageAsync();
     }
 
     private async Task LoadImageAsync()
     {
-        System.Diagnostics.Debug.WriteLine($"[ChatViewModel] LoadImageAsync: url={ImageUrl}");
-        var bitmap = await IconLoader.LoadAsync(ImageUrl).ConfigureAwait(false);
-        System.Diagnostics.Debug.WriteLine($"[ChatViewModel] LoadImageAsync: result={bitmap != null}");
+        var url = ImageUrl;
+        if (url == null) return;
+
+        Bitmap? bitmap;
+        if (url.StartsWith("local://", StringComparison.OrdinalIgnoreCase) && _fetchLocalImage != null)
+        {
+            var bytes = await _fetchLocalImage(url).ConfigureAwait(false);
+            bitmap = bytes != null ? new Bitmap(new System.IO.MemoryStream(bytes)) : null;
+        }
+        else
+        {
+            bitmap = await IconLoader.LoadAsync(url).ConfigureAwait(false);
+        }
+
         ImageBitmap = bitmap;
     }
 }

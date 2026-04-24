@@ -77,6 +77,7 @@ public partial class MainViewModel : ObservableObject
             MemberList.FetchIconUrl = fetchIcon;
             ContactList.FetchIconUrl = fetchIcon;
             Chat.FetchIconUrl = fetchIcon;
+            Chat.FetchLocalImage = url => host.Chat.FetchLocalImageAsync(url);
 
             host.Auth.LoginStateChanged += (_, loggedIn) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => OnLoginStateChanged(loggedIn));

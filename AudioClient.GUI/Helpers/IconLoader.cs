@@ -19,31 +19,14 @@ internal static class IconLoader
 
     private static async Task<Bitmap?> FetchAsync(string url)
     {
-        byte[]? bytes = null;
         try
         {
-            bytes = await Http.GetByteArrayAsync(url).ConfigureAwait(false);
-            var bmp = new Bitmap(new MemoryStream(bytes));
-            Log($"OK {bytes.Length}b {url}");
-            return bmp;
+            var bytes = await Http.GetByteArrayAsync(url).ConfigureAwait(false);
+            return new Bitmap(new MemoryStream(bytes));
         }
-        catch (Exception ex)
+        catch
         {
-            Log($"FAIL({(bytes == null ? "http" : "bitmap")}) {url}: {ex.GetType().Name}: {ex.Message}");
             return null;
         }
-    }
-
-    private static void Log(string message)
-    {
-        try
-        {
-            var logPath = System.IO.Path.Combine(
-                System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location)!,
-                "img_debug.log");
-            System.IO.File.AppendAllText(logPath,
-                $"{DateTime.Now:HH:mm:ss.fff} {message}\n");
-        }
-        catch { }
     }
 }
