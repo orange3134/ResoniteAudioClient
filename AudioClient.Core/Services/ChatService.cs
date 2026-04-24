@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using AudioClient.Core.Models;
 using FrooxEngine;
 
@@ -10,6 +11,7 @@ namespace AudioClient.Core.Services;
 public class ChatService
 {
     private const int PostReadMaxAttempts = 120;
+    private const int PostReadRetryDelayMs = 100;
 
     private readonly Engine _engine;
     private Slot? _postListSlot;
@@ -150,20 +152,29 @@ public class ChatService
 
     private void SchedulePostAdded(Slot child, int attempt)
     {
-        _engine.GlobalCoroutineManager.Post(_ =>
+        _engine.GlobalCoroutineManager.Post(_ => ProcessPostAttempt(child, attempt), null!);
+    }
+
+    private void ProcessPostAttempt(Slot child, int attempt)
+    {
+        if (child.IsRemoved || _postListSlot == null || child.Parent != _postListSlot) return;
+
+        var post = ParsePost(child);
+        if (post != null && IsPostReady(post))
         {
-            if (child.IsRemoved || _postListSlot == null || child.Parent != _postListSlot) return;
+            PostAdded?.Invoke(this, post);
+            return;
+        }
 
-            var post = ParsePost(child);
-            if (post != null && IsPostReady(post))
-            {
-                PostAdded?.Invoke(this, post);
-                return;
-            }
+        if (attempt >= PostReadMaxAttempts) return;
 
-            if (attempt < PostReadMaxAttempts)
-                SchedulePostAdded(child, attempt + 1);
-        }, null!);
+        // FrooxEngine の sync が追いつくまで間隔を置いてからリトライ
+        var engine = _engine;
+        _ = Task.Delay(PostReadRetryDelayMs).ContinueWith(_ =>
+        {
+            try { engine.GlobalCoroutineManager.Post(__ => ProcessPostAttempt(child, attempt + 1), null!); }
+            catch { }
+        });
     }
 
     private void OnPostRemoved(Slot parent, Slot child)
@@ -236,6 +247,8 @@ public class ChatService
         foreach (var content in post.Contents)
         {
             if (content.Type == "Text" && string.IsNullOrEmpty(content.Text))
+                return false;
+            if (content.Type == "Image" && string.IsNullOrEmpty(content.ImageUrl))
                 return false;
         }
 
@@ -311,15 +324,28 @@ public class ChatService
         foreach (var name in new[] { "Content", "Image", "Texture", "Texture2D" })
         {
             var providerUrl = TryReadTextureUrl(space, name);
-            if (providerUrl != null) return providerUrl;
+            if (providerUrl != null)
+            {
+                Elements.Core.UniLog.Log($"[ChatService] TryReadImageUrl: resolved via texture provider ({name}) → {providerUrl}");
+                return providerUrl;
+            }
         }
 
         if (TryReadDynamicValue(space, "Content", out Uri? uri))
-            return ToHttpAssetUrl(uri);
+        {
+            var url = ToHttpAssetUrl(uri);
+            Elements.Core.UniLog.Log($"[ChatService] TryReadImageUrl: resolved via Uri variable → {url}");
+            return url;
+        }
 
         if (TryReadDynamicValue(space, "Content", out string? rawUrl))
-            return ToHttpAssetUrl(rawUrl);
+        {
+            var url = ToHttpAssetUrl(rawUrl);
+            Elements.Core.UniLog.Log($"[ChatService] TryReadImageUrl: resolved via string variable → {url}");
+            return url;
+        }
 
+        Elements.Core.UniLog.Log("[ChatService] TryReadImageUrl: all paths failed, returning null");
         return null;
     }
 
@@ -327,15 +353,30 @@ public class ChatService
     {
         if (TryReadDynamicReference<IAssetProvider<Texture2D>>(space, name, out var texture2DProvider))
         {
-            var url = ToHttpAssetUrl(GetProviderAssetUrl(texture2DProvider));
+            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): provider={texture2DProvider?.GetType().Name ?? "null"}, isStatic={texture2DProvider is IStaticAssetProvider}");
+            var providerUri = GetProviderAssetUrl(texture2DProvider);
+            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): providerUri={providerUri}, assetUrl={texture2DProvider?.Asset?.AssetURL}");
+            var url = ToHttpAssetUrl(providerUri);
+            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): httpUrl={url}");
             if (url != null) return url;
+        }
+        else
+        {
+            Elements.Core.UniLog.Log($"[ChatService] TryReadTextureUrl({name}): no IAssetProvider<Texture2D> found");
         }
 
         return null;
     }
 
     private static Uri? GetProviderAssetUrl(IAssetProvider<Texture2D>? provider)
-        => provider?.Asset?.AssetURL;
+    {
+        if (provider == null) return null;
+        // IStaticAssetProvider.URL は Sync<Uri> フィールドを直接読むため、
+        // アセットのダウンロード完了を待たず同期済み時点で取得できる
+        if (provider is IStaticAssetProvider staticProvider)
+            return staticProvider.URL;
+        return provider.Asset?.AssetURL;
+    }
 
     private static bool TryReadDynamicReference<T>(DynamicVariableSpace space, string name, out T? value)
         where T : class, IWorldElement

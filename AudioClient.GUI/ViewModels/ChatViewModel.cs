@@ -118,6 +118,9 @@ public partial class ChatContentItemViewModel : ObservableObject
 
     private async Task LoadImageAsync()
     {
-        ImageBitmap = await IconLoader.LoadAsync(ImageUrl).ConfigureAwait(false);
+        System.Diagnostics.Debug.WriteLine($"[ChatViewModel] LoadImageAsync: url={ImageUrl}");
+        var bitmap = await IconLoader.LoadAsync(ImageUrl).ConfigureAwait(false);
+        System.Diagnostics.Debug.WriteLine($"[ChatViewModel] LoadImageAsync: result={bitmap != null}");
+        ImageBitmap = bitmap;
     }
 }
