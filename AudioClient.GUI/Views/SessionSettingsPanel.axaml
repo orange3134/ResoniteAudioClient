@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
+             x:Class="AudioClient.GUI.Views.SessionSettingsPanel"
+             x:DataType="vm:SessionDetailViewModel">
+
+    <!-- Backdrop — click to close -->
+    <Grid Background="#BB000000" PointerPressed="Backdrop_PointerPressed">
+
+        <!-- Settings card — click does not propagate to backdrop -->
+        <Border Background="{StaticResource BrushBgMid}"
+                CornerRadius="8" Padding="24"
+                MaxWidth="480" MinWidth="320"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                PointerPressed="Card_PointerPressed">
+            <StackPanel Spacing="20">
+
+                <!-- Header -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0" Text="セッション設定"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource BrushTextPrimary}"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="✕"
+                            Command="{Binding CloseSettingsCommand}"
+                            Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                            Padding="8,4" />
+                </Grid>
+
+                <!-- Session Name (host only) -->
+                <StackPanel Spacing="8" IsVisible="{Binding IsHost}">
+                    <TextBlock Text="セッション名" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                    <!-- Display mode -->
+                    <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !IsEditingName}">
+                        <TextBlock Grid.Column="0"
+                                   h:ResoniteRichText.Text="{Binding SessionName}"
+                                   Foreground="{StaticResource BrushTextPrimary}" FontSize="14"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1" Content="✏"
+                                Command="{Binding BeginEditNameCommand}"
+                                Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                                Margin="4,0,0,0" />
+                    </Grid>
+                    <!-- Edit mode -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding IsEditingName}">
+                        <TextBox Grid.Column="0" Text="{Binding EditNameValue}" Watermark="Session name..."
+                                 Background="{StaticResource BrushBgDark}"
+                                 Foreground="{StaticResource BrushTextPrimary}" />
+                        <Button Grid.Column="1" Content="✓"
+                                Command="{Binding CommitNameCommand}"
+                                Background="{StaticResource BrushAccent}" Foreground="White"
+                                Margin="4,0,0,0" />
+                        <Button Grid.Column="2" Content="✕"
+                                Command="{Binding CancelEditNameCommand}"
+                                Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                                Margin="4,0,0,0" />
+                    </Grid>
+                </StackPanel>
+
+                <!-- Access Level (host only) -->
+                <StackPanel Spacing="8" IsVisible="{Binding IsHost}">
+                    <TextBlock Text="アクセスレベル" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Content="Private"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="Private"
+                                Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" />
+                        <Button Content="Contacts"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="Contacts"
+                                Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" />
+                        <Button Content="ContactsPlus"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="ContactsPlus"
+                                Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" />
+                        <Button Content="RegisteredUsers"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="RegisteredUsers"
+                                Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" />
+                        <Button Content="Anyone"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="Anyone"
+                                Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" />
+                    </WrapPanel>
+                </StackPanel>
+
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>

@@ -104,6 +104,7 @@ public partial class MainViewModel : ObservableObject
                 _ = Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     IsAudioClientWorld = e.IsAcw;
+                    Chat.IsChatAvailable = e.IsAcw;
                     if (e.IsAcw && e.InitialPosts != null)
                         Chat.LoadPosts(e.InitialPosts);
                     else

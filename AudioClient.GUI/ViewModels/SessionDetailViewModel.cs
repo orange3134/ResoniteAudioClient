@@ -14,6 +14,7 @@ public partial class SessionDetailViewModel : ObservableObject
     [ObservableProperty] private bool _hasSession = false;
     [ObservableProperty] private bool _isEditingName = false;
     [ObservableProperty] private string _editNameValue = "";
+    [ObservableProperty] private bool _isSettingsOpen = false;
 
     public Action? OnLeaveRequested { get; set; }
     public Action<string>? OnSetName { get; set; }
@@ -22,7 +23,7 @@ public partial class SessionDetailViewModel : ObservableObject
     public void Update(WorldInfo? info)
     {
         HasSession = info != null;
-        if (info == null) { SessionName = ""; AccessLevel = ""; UserCountText = ""; IsHost = false; return; }
+        if (info == null) { SessionName = ""; AccessLevel = ""; UserCountText = ""; IsHost = false; IsSettingsOpen = false; return; }
         SessionName = info.Name;
         AccessLevel = info.AccessLevel;
         UserCountText = $"{info.UserCount}/{info.MaxUserCount}";
@@ -52,4 +53,14 @@ public partial class SessionDetailViewModel : ObservableObject
 
     [RelayCommand]
     private void SetAccessLevel(string level) => OnSetAccessLevel?.Invoke(level);
+
+    [RelayCommand]
+    private void OpenSettings() => IsSettingsOpen = true;
+
+    [RelayCommand]
+    private void CloseSettings()
+    {
+        IsSettingsOpen = false;
+        IsEditingName = false;
+    }
 }

@@ -15,6 +15,7 @@ namespace AudioClient.GUI.ViewModels;
 public partial class ChatViewModel : ObservableObject
 {
     [ObservableProperty] private string _inputText = "";
+    [ObservableProperty] private bool _isChatAvailable = false;
 
     public ObservableCollection<ChatPostItemViewModel> Posts { get; } = new();
 

@@ -40,8 +40,8 @@
             </Grid>
         </Border>
 
-        <!-- Main area: 5 columns — the Chat column (Auto) collapses when not in AudioClientWorld -->
-        <Grid Grid.Row="1" ColumnDefinitions="200,200,*,Auto,200">
+        <!-- Main area: 4 columns — Chat is now below SessionDetail in column 2 -->
+        <Grid Grid.Row="1" ColumnDefinitions="200,200,*,200">
 
             <!-- Far Left: tabbed Browse / Contacts -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*">
@@ -72,38 +72,38 @@
             <!-- Left: Session List -->
             <v:SessionListPanel Grid.Column="1" DataContext="{Binding SessionList}" />
 
-            <!-- Center: Session Detail / Loading -->
-            <Grid Grid.Column="2">
-                <!-- Loading overlay -->
-                <StackPanel IsVisible="{Binding !IsEngineReady}"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                    <TextBlock Text="Initializing..." Foreground="{StaticResource BrushTextPrimary}"
-                               FontSize="18" HorizontalAlignment="Center" />
-                    <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextMuted}"
-                               FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
-                </StackPanel>
+            <!-- Center: Session Detail (top bar) + Chat (below) -->
+            <Grid Grid.Column="2" RowDefinitions="Auto,*">
 
-                <!-- Session detail -->
-                <v:SessionDetailPanel IsVisible="{Binding IsEngineReady}"
-                                      DataContext="{Binding SessionDetail}" />
+                <!-- Row 0: compact session detail bar (only when engine ready) -->
+                <Border Grid.Row="0" IsVisible="{Binding IsEngineReady}">
+                    <v:SessionDetailPanel DataContext="{Binding SessionDetail}" />
+                </Border>
 
-                <!-- Session preview overlay (IsVisible managed by SessionPreviewPanel.axaml.cs) -->
-                <v:SessionPreviewPanel IsVisible="False" DataContext="{Binding SessionPreview}" />
+                <!-- Row 1: chat area -->
+                <Grid Grid.Row="1">
+                    <!-- Loading overlay -->
+                    <StackPanel IsVisible="{Binding !IsEngineReady}"
+                                HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <TextBlock Text="Initializing..." Foreground="{StaticResource BrushTextPrimary}"
+                                   FontSize="18" HorizontalAlignment="Center" />
+                        <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource BrushTextMuted}"
+                                   FontSize="12" HorizontalAlignment="Center" TextWrapping="Wrap" MaxWidth="300" />
+                    </StackPanel>
 
-                <!-- Login overlay (IsVisible managed by LoginPanel.axaml.cs via DataContext) -->
-                <v:LoginPanel IsVisible="False" DataContext="{Binding Login}" />
+                    <!-- Chat Panel — always visible; availability state handled inside the panel -->
+                    <v:ChatPanel DataContext="{Binding Chat}" />
+                </Grid>
 
-                <!-- User info overlay (IsVisible managed by UserInfoPanel.axaml.cs via DataContext) -->
-                <v:UserInfoPanel IsVisible="False" DataContext="{Binding UserInfoPopup}" />
+                <!-- Overlays spanning both rows -->
+                <v:SessionPreviewPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding SessionPreview}" />
+                <v:LoginPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding Login}" />
+                <v:UserInfoPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding UserInfoPopup}" />
+                <v:SessionSettingsPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding SessionDetail}" />
             </Grid>
 
-            <!-- Column 3: Chat Panel — visible only in AudioClientWorld (Auto column collapses when hidden) -->
-            <Border Grid.Column="3" IsVisible="{Binding IsAudioClientWorld}">
-                <v:ChatPanel Width="280" DataContext="{Binding Chat}" />
-            </Border>
-
-            <!-- Column 4: Member List -->
-            <v:MemberListPanel Grid.Column="4" DataContext="{Binding MemberList}" />
+            <!-- Column 3: Member List -->
+            <v:MemberListPanel Grid.Column="3" DataContext="{Binding MemberList}" />
 
         </Grid>
 
