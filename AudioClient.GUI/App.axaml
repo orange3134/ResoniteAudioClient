@@ -4,6 +4,9 @@
              RequestedThemeVariant="Dark">
     <Application.Styles>
         <FluentTheme />
+        <Style Selector="TopLevel">
+            <Setter Property="FontFamily" Value="Segoe UI, Segoe UI Emoji, Segoe UI Symbol" />
+        </Style>
     </Application.Styles>
 
     <Application.Resources>

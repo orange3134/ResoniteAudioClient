@@ -28,7 +28,7 @@
                            Foreground="{StaticResource BrushTextPrimary}" />
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBox Grid.Column="0"
-                             Text="{Binding InstallPath}"
+                             Text="{Binding InstallPath, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                              Watermark="C:\Program Files (x86)\Steam\steamapps\common\Resonite"
                              Background="{StaticResource BrushBgMid}"
                              Foreground="{StaticResource BrushTextPrimary}"

@@ -44,7 +44,7 @@
                     </Grid>
                     <!-- Edit mode -->
                     <Grid ColumnDefinitions="*,Auto,Auto" IsVisible="{Binding IsEditingName}">
-                        <TextBox Grid.Column="0" Text="{Binding EditNameValue}" Watermark="Session name..."
+                        <TextBox Grid.Column="0" Text="{Binding EditNameValue, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Watermark="Session name..."
                                  Background="{StaticResource BrushBgDark}"
                                  Foreground="{StaticResource BrushTextPrimary}" />
                         <Button Grid.Column="1" Content="✓"

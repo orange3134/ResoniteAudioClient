@@ -40,17 +40,17 @@
                     IsEnabled="{Binding !IsLoggingIn}" />
 
             <TextBox IsVisible="{Binding !IsLoggedIn}"
-                     Text="{Binding Username}" Watermark="Username"
+                     Text="{Binding Username, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Watermark="Username"
                      Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                      IsEnabled="{Binding !IsLoggingIn}" />
 
             <TextBox IsVisible="{Binding !IsLoggedIn}"
-                     Text="{Binding Password}" Watermark="Password" PasswordChar="*"
+                     Text="{Binding Password, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Watermark="Password" PasswordChar="*"
                      Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                      IsEnabled="{Binding !IsLoggingIn}" />
 
             <TextBox IsVisible="{Binding RequiresTotp}"
-                     Text="{Binding TotpCode}" Watermark="TOTP code"
+                     Text="{Binding TotpCode, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Watermark="TOTP code"
                      Background="{StaticResource BrushBgMid}" Foreground="{StaticResource BrushTextPrimary}"
                      IsEnabled="{Binding !IsLoggingIn}" />
 

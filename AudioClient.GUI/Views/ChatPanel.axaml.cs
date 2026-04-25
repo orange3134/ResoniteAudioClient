@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using AudioClient.GUI.Controls;
 using AudioClient.GUI.ViewModels;
 
 namespace AudioClient.GUI.Views;
@@ -93,10 +94,14 @@ public partial class ChatPanel : UserControl
 
     private void InputTextBox_KeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter && _vm != null)
-        {
-            _vm.SendCommand.Execute(null);
-            e.Handled = true;
-        }
+        if (e.Key != Key.Enter || _vm == null || sender is not ImeAwareTextBox textBox)
+            return;
+
+        if (textBox.HasActiveImeComposition)
+            return;
+
+        textBox.FlushTextBindingToSource();
+        _vm.SendCommand.Execute(null);
+        e.Handled = true;
     }
 }

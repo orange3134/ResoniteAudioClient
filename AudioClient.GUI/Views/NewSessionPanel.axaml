@@ -31,7 +31,7 @@
                 <!-- Session Name -->
                 <StackPanel Spacing="6">
                     <TextBlock Text="セッション名" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
-                    <TextBox Text="{Binding SessionName, Mode=TwoWay}"
+                    <TextBox Text="{Binding SessionName, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                              Background="{StaticResource BrushBgDark}"
                              Foreground="{StaticResource BrushTextPrimary}"
                              BorderThickness="0" CornerRadius="4" Padding="8,6" FontSize="13" />
@@ -104,7 +104,7 @@
 
                     <!-- World Record URL (only when WorldRecord template selected) -->
                     <TextBox IsVisible="{Binding IsWorldRecordTemplate}"
-                             Text="{Binding WorldRecordUrl, Mode=TwoWay}"
+                             Text="{Binding WorldRecordUrl, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                              Watermark="resrec:///..."
                              Background="{StaticResource BrushBgDark}"
                              Foreground="{StaticResource BrushTextPrimary}"

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
              xmlns:h="clr-namespace:AudioClient.GUI.Helpers"
+             xmlns:c="clr-namespace:AudioClient.GUI.Controls"
              x:Class="AudioClient.GUI.Views.BrowseSessionsPanel"
              x:DataType="vm:BrowseSessionsViewModel"
              Background="{StaticResource BrushBgMid}">
@@ -16,9 +17,10 @@
 
         <!-- Search + Refresh -->
         <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="6,6,6,2">
-            <TextBox x:Name="SearchBox" Grid.Column="0" Text="{Binding SearchText}" Watermark="Search..."
-                     Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
-                     FontSize="12" Padding="6,4" CornerRadius="4" />
+            <c:ImeAwareTextBox x:Name="SearchBox" Grid.Column="0"
+                               Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}" Watermark="Search..."
+                               Background="{StaticResource BrushBgDark}" Foreground="{StaticResource BrushTextPrimary}"
+                               FontSize="12" Padding="6,4" CornerRadius="4" />
             <Button Grid.Column="1" Content="⟳" Command="{Binding RefreshCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                     FontSize="16" Padding="6,2" Margin="4,0,0,0" VerticalAlignment="Center"

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
              xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             xmlns:c="clr-namespace:AudioClient.GUI.Controls"
              x:Class="AudioClient.GUI.Views.ChatPanel"
              x:DataType="vm:ChatViewModel"
              Background="{StaticResource BrushBgMid}"
@@ -116,8 +117,8 @@
 
                 <!-- Text input row -->
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBox Grid.Column="0"
-                             Text="{Binding InputText, Mode=TwoWay}"
+                    <c:ImeAwareTextBox Grid.Column="0"
+                             Text="{Binding InputText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                              Watermark="メッセージを入力..."
                              Background="{StaticResource BrushBgDark}"
                              Foreground="{StaticResource BrushTextPrimary}"
