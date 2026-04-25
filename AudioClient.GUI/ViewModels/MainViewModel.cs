@@ -173,8 +173,11 @@ public partial class MainViewModel : ObservableObject
                 await host.Contacts.AddContactAsync(userId, username);
 
             // Chat
-            Chat.OnSendRequested = text =>
-                host.PostToEngine(() => host.Chat.SendTextMessage(text, host.Auth.CurrentUsername ?? "Unknown"));
+            Chat.OnSendRequested = async (text, filePath) =>
+            {
+                Uri? imageUri = filePath != null ? await host.Chat.ImportImageAsync(filePath) : null;
+                host.Chat.SendPost(text, imageUri, host.Auth.CurrentUsername ?? "Unknown");
+            };
 
             _ = Dispatcher.UIThread.InvokeAsync(() =>
             {

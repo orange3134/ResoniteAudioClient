@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using AudioClient.Core.Models;
@@ -16,20 +17,57 @@ public partial class ChatViewModel : ObservableObject
 {
     [ObservableProperty] private string _inputText = "";
     [ObservableProperty] private bool _isChatAvailable = false;
+    [ObservableProperty] private string? _attachedFilePath;
+    [ObservableProperty] private Bitmap? _attachedPreview;
 
     public ObservableCollection<ChatPostItemViewModel> Posts { get; } = new();
 
-    public Action<string>? OnSendRequested { get; set; }
+    public Func<string?, string?, Task>? OnSendRequested { get; set; }
     public Func<string, Task<string?>>? FetchIconUrl { get; set; }
     public Func<string, Task<byte[]?>>? FetchLocalImage { get; set; }
+
+    public void SetAttachment(string filePath)
+    {
+        AttachedFilePath = filePath;
+        _ = LoadPreviewAsync(filePath);
+    }
+
+    private async Task LoadPreviewAsync(string filePath)
+    {
+        try
+        {
+            var bytes = await File.ReadAllBytesAsync(filePath).ConfigureAwait(false);
+            AttachedPreview = new Bitmap(new MemoryStream(bytes));
+        }
+        catch
+        {
+            AttachedPreview = null;
+        }
+    }
+
+    [RelayCommand]
+    private void ClearAttachment()
+    {
+        AttachedFilePath = null;
+        AttachedPreview?.Dispose();
+        AttachedPreview = null;
+    }
 
     [RelayCommand]
     private void Send()
     {
+        var filePath = AttachedFilePath;
         var text = InputText.Trim();
-        if (string.IsNullOrEmpty(text)) return;
-        OnSendRequested?.Invoke(text);
-        InputText = "";
+
+        if (filePath != null) ClearAttachment();
+        if (!string.IsNullOrEmpty(text)) InputText = "";
+
+        var textArg = string.IsNullOrEmpty(text) ? null : text;
+        if (textArg == null && filePath == null) return;
+
+        var callback = OnSendRequested;
+        if (callback != null)
+            _ = callback(textArg, filePath);
     }
 
     public void LoadPosts(List<ChatPostInfo> posts)
@@ -132,7 +170,7 @@ public partial class ChatContentItemViewModel : ObservableObject
         if (url.StartsWith("local://", StringComparison.OrdinalIgnoreCase) && _fetchLocalImage != null)
         {
             var bytes = await _fetchLocalImage(url).ConfigureAwait(false);
-            bitmap = bytes != null ? new Bitmap(new System.IO.MemoryStream(bytes)) : null;
+            bitmap = bytes != null ? new Bitmap(new MemoryStream(bytes)) : null;
         }
         else
         {

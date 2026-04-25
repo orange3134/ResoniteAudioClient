@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using AudioClient.Core.Models;
 using FrooxEngine;
+using FrooxEngine.Store;
 
 namespace AudioClient.Core.Services;
 
@@ -17,6 +19,7 @@ public class ChatService
     private Slot? _postListSlot;
     private Slot? _prefPostElement;
     private Slot? _prefContentText;
+    private Slot? _prefContentImage;
     private World? _lastWorld;
 
     public bool IsAudioClientWorld { get; private set; }
@@ -33,22 +36,33 @@ public class ChatService
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void SendTextMessage(string text, string username)
+    public async Task<Uri?> ImportImageAsync(string filePath)
     {
-        if (_postListSlot == null || _prefPostElement == null || _prefContentText == null) return;
+        try
+        {
+            return await _engine.LocalDB.ImportLocalAssetAsync(
+                filePath, LocalDB.ImportLocation.Original).ConfigureAwait(false);
+        }
+        catch { return null; }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void SendPost(string? text, Uri? imageUri, string username)
+    {
+        if (_postListSlot == null || _prefPostElement == null) return;
+        if (text == null && imageUri == null) return;
 
         var postListSlot = _postListSlot;
         var prefPostElement = _prefPostElement;
         var prefContentText = _prefContentText;
+        var prefContentImage = _prefContentImage;
 
-        // engine.Cloud はスレッドセーフなので RunSynchronously の外で読む
         var iconUrlString = _engine.Cloud.CurrentUser?.Profile?.IconUrl;
         Uri.TryCreate(iconUrlString, UriKind.Absolute, out var iconUri);
 
-        // Slot.Duplicate と WriteDynamicVariable はワールドのモディフィケーションロックが必要
         postListSlot.World.RunSynchronously(() =>
         {
-            if (postListSlot.IsRemoved || prefPostElement.IsRemoved || prefContentText.IsRemoved) return;
+            if (postListSlot.IsRemoved || prefPostElement.IsRemoved) return;
 
             var world = postListSlot.World;
             var postSlot = prefPostElement.Duplicate(postListSlot);
@@ -60,10 +74,22 @@ public class ChatService
             if (iconUri != null)
                 postSlot.WriteDynamicVariable("PostElement/IconUri", iconUri);
 
-            var contentSlot = prefContentText.Duplicate(postSlot);
-            contentSlot.PersistentSelf = false;
-            contentSlot.WriteDynamicVariable("Content/Type", "Text");
-            contentSlot.WriteDynamicVariable("Content/Content", text);
+            if (text != null && prefContentText != null && !prefContentText.IsRemoved)
+            {
+                var textSlot = prefContentText.Duplicate(postSlot);
+                textSlot.PersistentSelf = false;
+                textSlot.WriteDynamicVariable("Content/Type", "Text");
+                textSlot.WriteDynamicVariable("Content/Content", text);
+            }
+
+            if (imageUri != null && prefContentImage != null && !prefContentImage.IsRemoved)
+            {
+                var imageSlot = prefContentImage.Duplicate(postSlot);
+                imageSlot.PersistentSelf = false;
+                var tex = imageSlot.GetComponentInChildren<StaticTexture2D>();
+                if (tex is not null)
+                    tex.URL.Value = imageUri;
+            }
         });
     }
 
@@ -77,7 +103,6 @@ public class ChatService
 
             if (world == _lastWorld)
             {
-                // Verify slot still valid
                 if (IsAudioClientWorld && (_postListSlot == null || _postListSlot.IsRemoved))
                     Detach();
                 return;
@@ -114,6 +139,7 @@ public class ChatService
                 _postListSlot = postListSlot;
                 space.TryReadValue<Slot>("Pref.PostElement", out _prefPostElement);
                 space.TryReadValue<Slot>("Pref.ContentText", out _prefContentText);
+                space.TryReadValue<Slot>("Pref.ContentImageWithAsset", out _prefContentImage);
 
                 postListSlot.ChildAdded += OnPostAdded;
                 postListSlot.ChildRemoved += OnPostRemoved;
@@ -135,6 +161,7 @@ public class ChatService
         }
         _prefPostElement = null;
         _prefContentText = null;
+        _prefContentImage = null;
         SetIsAudioClientWorld(false, null);
     }
 
@@ -168,7 +195,6 @@ public class ChatService
 
         if (attempt >= PostReadMaxAttempts) return;
 
-        // FrooxEngine の sync が追いつくまで間隔を置いてからリトライ
         var engine = _engine;
         _ = Task.Delay(PostReadRetryDelayMs).ContinueWith(_ =>
         {
@@ -349,8 +375,6 @@ public class ChatService
     private static Uri? GetProviderAssetUrl(IAssetProvider<Texture2D>? provider)
     {
         if (provider == null) return null;
-        // IStaticAssetProvider.URL は Sync<Uri> フィールドを直接読むため、
-        // アセットのダウンロード完了を待たず同期済み時点で取得できる
         if (provider is IStaticAssetProvider staticProvider)
             return staticProvider.URL;
         return provider.Asset?.AssetURL;

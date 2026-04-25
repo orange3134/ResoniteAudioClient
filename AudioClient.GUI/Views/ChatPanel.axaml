@@ -4,7 +4,8 @@
              xmlns:v="clr-namespace:AudioClient.GUI.Views"
              x:Class="AudioClient.GUI.Views.ChatPanel"
              x:DataType="vm:ChatViewModel"
-             Background="{StaticResource BrushBgMid}">
+             Background="{StaticResource BrushBgMid}"
+             DragDrop.AllowDrop="True">
 
     <Grid RowDefinitions="Auto,*,Auto">
 
@@ -95,23 +96,44 @@
         <!-- Input area -->
         <Border Grid.Row="2" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,1,0,0"
                 Padding="8,8" IsEnabled="{Binding IsChatAvailable}">
-            <Grid ColumnDefinitions="*,Auto">
-                <TextBox Grid.Column="0"
-                         Text="{Binding InputText, Mode=TwoWay}"
-                         Watermark="メッセージを入力..."
-                         Background="{StaticResource BrushBgDark}"
-                         Foreground="{StaticResource BrushTextPrimary}"
-                         BorderThickness="0" CornerRadius="4" Padding="8,6"
-                         FontSize="13"
-                         Name="InputTextBox"
-                         KeyDown="InputTextBox_KeyDown" />
-                <Button Grid.Column="1"
-                        Content="送信"
-                        Command="{Binding SendCommand}"
-                        Background="{StaticResource BrushAccent}" Foreground="White"
-                        Margin="6,0,0,0" Padding="10,6" CornerRadius="4"
-                        FontSize="13" />
-            </Grid>
+            <StackPanel Spacing="6">
+
+                <!-- Image preview (visible when a file is attached) -->
+                <Border IsVisible="{Binding AttachedFilePath, Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Background="{StaticResource BrushBgDark}" CornerRadius="6"
+                        Padding="4" HorizontalAlignment="Left" ClipToBounds="True">
+                    <Grid>
+                        <Image Source="{Binding AttachedPreview}"
+                               MaxWidth="160" MaxHeight="120" Stretch="Uniform" />
+                        <Button Content="✕"
+                                Command="{Binding ClearAttachmentCommand}"
+                                HorizontalAlignment="Right" VerticalAlignment="Top"
+                                Background="#99000000" Foreground="White"
+                                FontSize="10" Padding="3,1" CornerRadius="3"
+                                Margin="2" />
+                    </Grid>
+                </Border>
+
+                <!-- Text input row -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBox Grid.Column="0"
+                             Text="{Binding InputText, Mode=TwoWay}"
+                             Watermark="メッセージを入力..."
+                             Background="{StaticResource BrushBgDark}"
+                             Foreground="{StaticResource BrushTextPrimary}"
+                             BorderThickness="0" CornerRadius="4" Padding="8,6"
+                             FontSize="13"
+                             Name="InputTextBox"
+                             KeyDown="InputTextBox_KeyDown" />
+                    <Button Grid.Column="1"
+                            Content="送信"
+                            Command="{Binding SendCommand}"
+                            Background="{StaticResource BrushAccent}" Foreground="White"
+                            Margin="6,0,0,0" Padding="10,6" CornerRadius="4"
+                            FontSize="13" />
+                </Grid>
+
+            </StackPanel>
         </Border>
 
     </Grid>
