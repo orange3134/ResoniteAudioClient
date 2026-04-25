@@ -117,6 +117,44 @@ public class SessionService
         await Userspace.OpenWorld(settings);
     }
 
+    private const string AudioClientWorldUrl = "resrec:///U-orange/R-019dba01-4cfc-7e37-b979-b2e4523f7edf";
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public async Task StartNewSessionAsync(Models.NewSessionSettings settings)
+    {
+        World? world = null;
+
+        if (settings.Template == "Grid")
+        {
+            var preset = WorldPresets.Presets
+                .FirstOrDefault(p => p.Name.Equals("Grid", StringComparison.OrdinalIgnoreCase));
+            if (preset != null)
+                world = Userspace.StartSession(preset.Method);
+        }
+        else
+        {
+            var url = settings.Template == "AudioClientWorld"
+                ? AudioClientWorldUrl
+                : settings.WorldRecordUrl;
+            if (string.IsNullOrWhiteSpace(url)) return;
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+            world = await Userspace.OpenWorld(new WorldStartSettings(uri));
+        }
+
+        if (world == null) return;
+
+        for (int i = 0; i < 60 && world.State != World.WorldState.Running; i++)
+            await Task.Delay(500);
+        if (world.State != World.WorldState.Running) return;
+
+        if (!Enum.TryParse<SessionAccessLevel>(settings.AccessLevel, true, out var accessLevel))
+            accessLevel = SessionAccessLevel.Contacts;
+
+        world.Name = settings.SessionName;
+        world.AccessLevel = accessLevel;
+        world.RunSynchronously(() => world.MaxUsers = settings.MaxUsers);
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     public List<string> GetWorldTemplates()
         => WorldPresets.Presets.Select(p => p.Name).ToList();

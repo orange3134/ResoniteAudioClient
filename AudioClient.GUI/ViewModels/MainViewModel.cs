@@ -32,6 +32,7 @@ public partial class MainViewModel : ObservableObject
     public SessionPreviewViewModel SessionPreview { get; }
     public UserInfoViewModel UserInfoPopup { get; }
     public ChatViewModel Chat { get; }
+    public NewSessionViewModel NewSession { get; }
 
     public MainViewModel(string appDir, string engineDir, string[] args)
     {
@@ -45,6 +46,7 @@ public partial class MainViewModel : ObservableObject
         SessionPreview = new SessionPreviewViewModel();
         UserInfoPopup = new UserInfoViewModel();
         Chat = new ChatViewModel();
+        NewSession = new NewSessionViewModel();
 
         Task.Run(() => InitializeEngineAsync(appDir, engineDir, args));
     }
@@ -119,8 +121,10 @@ public partial class MainViewModel : ObservableObject
             // Session list actions
             SessionList.OnFocusRequested = info => host.PostToEngine(() => host.Sessions.FocusWorld(info));
             SessionList.OnLeaveRequested = () => host.PostToEngine(() => host.Sessions.Leave());
-            SessionList.OnNewSessionRequested = template => host.PostToEngine(() => host.Sessions.StartWorldTemplate(template));
-            SessionList.GetTemplates = () => host.Sessions.GetWorldTemplates();
+            SessionList.OnOpenNewSessionDialog = () => _ = Dispatcher.UIThread.InvokeAsync(() => NewSession.Show());
+
+            // New session dialog
+            NewSession.OnStartRequested = settings => Task.Run(() => host.Sessions.StartNewSessionAsync(settings));
 
             // Session detail actions
             SessionDetail.OnLeaveRequested = () => host.PostToEngine(() => host.Sessions.Leave());

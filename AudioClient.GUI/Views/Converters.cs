@@ -56,6 +56,22 @@ public class NotZeroConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+// Returns Accent brush when value string matches ConverterParameter, else BgDark
+public class StringMatchBrushConverter : IValueConverter
+{
+    public static readonly StringMatchBrushConverter Instance = new();
+
+    private static readonly IBrush Accent = new SolidColorBrush(Color.Parse("#7289da"));
+    private static readonly IBrush BgDark = new SolidColorBrush(Color.Parse("#202225"));
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => string.Equals(value as string, parameter as string, StringComparison.Ordinal)
+            ? Accent : BgDark;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 public class BoolToStringConverter : IValueConverter
 {
     public static readonly BoolToStringConverter SignInButtonLabel = new("Verify TOTP", "Sign In");

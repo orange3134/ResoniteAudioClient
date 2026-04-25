@@ -100,6 +100,7 @@
                 <v:LoginPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding Login}" />
                 <v:UserInfoPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding UserInfoPopup}" />
                 <v:SessionSettingsPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding SessionDetail}" />
+                <v:NewSessionPanel Grid.RowSpan="2" IsVisible="False" DataContext="{Binding NewSession}" />
             </Grid>
 
             <!-- Column 3: Member List -->

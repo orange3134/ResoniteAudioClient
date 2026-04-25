@@ -45,37 +45,11 @@
 
         <!-- New Session Button -->
         <Border Grid.Row="2" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,1,0,0" Padding="4,4">
-            <Grid>
-                <Button Content="+ New Session"
-                        Command="{Binding OpenNewSessionCommand}"
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                        Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                        Padding="8,6" CornerRadius="4" FontSize="13" />
-
-                <!-- Template Popup -->
-                <Popup IsOpen="{Binding IsNewSessionPopupOpen, Mode=TwoWay}"
-                       Placement="Top" IsLightDismissEnabled="True">
-                    <Border Background="{StaticResource BrushBgLight}" CornerRadius="6"
-                            Padding="4" MinWidth="180" BoxShadow="0 4 16 0 #88000000">
-                        <StackPanel>
-                            <TextBlock Text="Start from template" Foreground="{StaticResource BrushTextMuted}"
-                                       FontSize="11" Margin="8,6,8,4" />
-                            <ItemsControl ItemsSource="{Binding AvailableTemplates}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <Button Content="{Binding}"
-                                                Command="{Binding $parent[ItemsControl].((vm:SessionListViewModel)DataContext).StartTemplateCommand}"
-                                                CommandParameter="{Binding}"
-                                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
-                                                Padding="8,5" CornerRadius="4" FontSize="13" />
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </Border>
-                </Popup>
-            </Grid>
+            <Button Content="+ New Session"
+                    Command="{Binding OpenNewSessionCommand}"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    Padding="8,6" CornerRadius="4" FontSize="13" />
         </Border>
 
     </Grid>

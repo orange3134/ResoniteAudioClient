@@ -1,0 +1,132 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             xmlns:v="clr-namespace:AudioClient.GUI.Views"
+             x:Class="AudioClient.GUI.Views.NewSessionPanel"
+             x:DataType="vm:NewSessionViewModel">
+
+    <!-- Backdrop -->
+    <Grid Background="#BB000000" PointerPressed="Backdrop_PointerPressed">
+
+        <!-- Dialog card -->
+        <Border Background="{StaticResource BrushBgMid}"
+                CornerRadius="8" Padding="24"
+                MaxWidth="420" MinWidth="320"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                PointerPressed="Card_PointerPressed">
+            <StackPanel Spacing="20">
+
+                <!-- Header -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Grid.Column="0" Text="新しいセッション"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{StaticResource BrushTextPrimary}"
+                               VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Content="✕"
+                            Command="{Binding CancelCommand}"
+                            Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                            Padding="8,4" />
+                </Grid>
+
+                <!-- Session Name -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="セッション名" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                    <TextBox Text="{Binding SessionName, Mode=TwoWay}"
+                             Background="{StaticResource BrushBgDark}"
+                             Foreground="{StaticResource BrushTextPrimary}"
+                             BorderThickness="0" CornerRadius="4" Padding="8,6" FontSize="13" />
+                </StackPanel>
+
+                <!-- Max Users -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="最大人数" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                    <NumericUpDown Value="{Binding MaxUsers, Mode=TwoWay}"
+                                  Minimum="1" Maximum="256" Increment="1"
+                                  FormatString="0"
+                                  Background="{StaticResource BrushBgDark}"
+                                  Foreground="{StaticResource BrushTextPrimary}"
+                                  BorderThickness="0" CornerRadius="4"
+                                  FontSize="13" />
+                </StackPanel>
+
+                <!-- Access Level -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="アクセスレベル" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Content="Private"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="Private"
+                                Background="{Binding SelectedAccessLevel, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='Private'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" FontSize="12" />
+                        <Button Content="Contacts"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="Contacts"
+                                Background="{Binding SelectedAccessLevel, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='Contacts'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" FontSize="12" />
+                        <Button Content="ContactsPlus"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="ContactsPlus"
+                                Background="{Binding SelectedAccessLevel, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='ContactsPlus'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" FontSize="12" />
+                        <Button Content="RegisteredUsers"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="RegisteredUsers"
+                                Background="{Binding SelectedAccessLevel, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='RegisteredUsers'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" FontSize="12" />
+                        <Button Content="Anyone"
+                                Command="{Binding SetAccessLevelCommand}" CommandParameter="Anyone"
+                                Background="{Binding SelectedAccessLevel, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='Anyone'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Margin="0,0,6,6" Padding="10,5" CornerRadius="4" FontSize="12" />
+                    </WrapPanel>
+                </StackPanel>
+
+                <!-- Template -->
+                <StackPanel Spacing="6">
+                    <TextBlock Text="テンプレート" Foreground="{StaticResource BrushTextMuted}" FontSize="12" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button Content="AudioClient World"
+                                Command="{Binding SetTemplateCommand}" CommandParameter="AudioClientWorld"
+                                Background="{Binding SelectedTemplate, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='AudioClientWorld'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Padding="10,5" CornerRadius="4" FontSize="12" />
+                        <Button Content="Grid"
+                                Command="{Binding SetTemplateCommand}" CommandParameter="Grid"
+                                Background="{Binding SelectedTemplate, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='Grid'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Padding="10,5" CornerRadius="4" FontSize="12" />
+                        <Button Content="World Record"
+                                Command="{Binding SetTemplateCommand}" CommandParameter="WorldRecord"
+                                Background="{Binding SelectedTemplate, Converter={x:Static v:StringMatchBrushConverter.Instance}, ConverterParameter='WorldRecord'}"
+                                Foreground="{StaticResource BrushTextPrimary}"
+                                Padding="10,5" CornerRadius="4" FontSize="12" />
+                    </StackPanel>
+
+                    <!-- World Record URL (only when WorldRecord template selected) -->
+                    <TextBox IsVisible="{Binding IsWorldRecordTemplate}"
+                             Text="{Binding WorldRecordUrl, Mode=TwoWay}"
+                             Watermark="resrec:///..."
+                             Background="{StaticResource BrushBgDark}"
+                             Foreground="{StaticResource BrushTextPrimary}"
+                             BorderThickness="0" CornerRadius="4" Padding="8,6" FontSize="13"
+                             Margin="0,4,0,0" />
+                </StackPanel>
+
+                <!-- Buttons -->
+                <Grid ColumnDefinitions="*,Auto">
+                    <Button Grid.Column="0" Content="キャンセル"
+                            Command="{Binding CancelCommand}"
+                            Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                            HorizontalAlignment="Left" Padding="10,7" CornerRadius="4" FontSize="13" />
+                    <Button Grid.Column="1" Content="Start"
+                            Command="{Binding StartCommand}"
+                            IsEnabled="{Binding !IsStarting}"
+                            Background="{StaticResource BrushAccent}" Foreground="White"
+                            Padding="20,7" CornerRadius="4" FontSize="13" FontWeight="SemiBold" />
+                </Grid>
+
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>
