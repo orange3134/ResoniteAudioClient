@@ -43,3 +43,9 @@ When publishing this project:
 
 See `THIRD-PARTY-NOTICES.md` for a summary of third-party dependencies used by
 this repository.
+
+## GUI settings
+
+`AudioClient.GUI` now includes a settings dialog from the status bar gear icon.
+You can toggle automatic switching to the AudioClient Avatar when joining a
+session, and the setting is saved in the GUI settings file.

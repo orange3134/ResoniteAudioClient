@@ -6,15 +6,32 @@ using System.Threading.Tasks;
 using AudioClient.Core.Models;
 using FrooxEngine;
 using SkyFrost.Base;
+using StoreRecord = FrooxEngine.Store.Record;
 
 namespace AudioClient.Core.Services;
 
 public class SessionService
 {
+    private const string AudioClientWorldUrl = "resrec:///U-orange/R-019dba01-4cfc-7e37-b979-b2e4523f7edf";
+    private const float AutoEquipAvatarDelaySeconds = 2.5f;
+    private const float AutoEquipAvatarRetryDelaySeconds = 6f;
+    private static readonly Uri AudioClientAvatarUri =
+        new("resrec:///U-orange/R-019dc2f5-304e-7678-bfd9-947869ad33b1");
+
     private readonly Engine _engine;
     private List<WorldInfo> _lastSessions = new();
+    private readonly object _avatarEquipLock = new();
+    private readonly HashSet<World> _avatarEquipAttemptedWorlds = new();
+    private Task<CloudResult<StoreRecord>>? _avatarRecordTask;
+    private volatile bool _autoEquipAudioClientAvatarEnabled = true;
 
     public event EventHandler<List<WorldInfo>>? SessionListChanged;
+
+    public bool AutoEquipAudioClientAvatarEnabled
+    {
+        get => _autoEquipAudioClientAvatarEnabled;
+        set => _autoEquipAudioClientAvatarEnabled = value;
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal SessionService(Engine engine)
@@ -116,8 +133,6 @@ public class SessionService
         var settings = new WorldStartSettings(uri);
         await Userspace.OpenWorld(settings);
     }
-
-    private const string AudioClientWorldUrl = "resrec:///U-orange/R-019dba01-4cfc-7e37-b979-b2e4523f7edf";
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     public async Task StartNewSessionAsync(Models.NewSessionSettings settings)
@@ -221,6 +236,7 @@ public class SessionService
     {
         try
         {
+            RefreshAutoEquipAvatar();
             var current = GetCurrentSessions();
             if (!SessionListsEqual(current, _lastSessions))
             {
@@ -229,6 +245,84 @@ public class SessionService
             }
         }
         catch { }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void RefreshAutoEquipAvatar()
+    {
+        var worlds = new List<World>();
+        _engine.WorldManager.GetWorlds(worlds);
+        worlds.RemoveAll(w => w == Userspace.UserspaceWorld);
+
+        lock (_avatarEquipLock)
+            _avatarEquipAttemptedWorlds.RemoveWhere(w => !worlds.Contains(w));
+
+        if (!_autoEquipAudioClientAvatarEnabled)
+            return;
+
+        foreach (var world in worlds)
+        {
+            if (world.State != World.WorldState.Running || world.LocalUser?.Root == null)
+                continue;
+
+            bool shouldEquip;
+            lock (_avatarEquipLock)
+                shouldEquip = _avatarEquipAttemptedWorlds.Add(world);
+
+            if (shouldEquip)
+                _ = AutoEquipAudioClientAvatarAsync(world);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private async Task AutoEquipAudioClientAvatarAsync(World world)
+    {
+        try
+        {
+            var recordResult = await GetAudioClientAvatarRecordAsync().ConfigureAwait(false);
+            if (!recordResult.IsOK || recordResult.Entity == null)
+            {
+                lock (_avatarEquipLock)
+                    _avatarRecordTask = null;
+                return;
+            }
+
+            if (!_autoEquipAudioClientAvatarEnabled)
+                return;
+
+            if (world.State != World.WorldState.Running || world.LocalUser?.Root == null)
+                return;
+
+            ScheduleAvatarEquip(world, recordResult.Entity, AutoEquipAvatarDelaySeconds);
+            ScheduleAvatarEquip(world, recordResult.Entity, AutoEquipAvatarRetryDelaySeconds);
+        }
+        catch
+        {
+            lock (_avatarEquipLock)
+                _avatarRecordTask = null;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void ScheduleAvatarEquip(World world, StoreRecord record, float delaySeconds)
+    {
+        world.RunInSeconds(delaySeconds, () =>
+        {
+            if (!_autoEquipAudioClientAvatarEnabled)
+                return;
+
+            if (world.State != World.WorldState.Running || world.LocalUser?.Root == null)
+                return;
+
+            world.TryEquipAvatar(record);
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Task<CloudResult<StoreRecord>> GetAudioClientAvatarRecordAsync()
+    {
+        lock (_avatarEquipLock)
+            return _avatarRecordTask ??= _engine.RecordManager.FetchRecord(AudioClientAvatarUri);
     }
 
     private static bool SessionListsEqual(List<WorldInfo> a, List<WorldInfo> b)

@@ -10,11 +10,23 @@
 
     <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="12,0">
 
-        <Button Grid.Column="3" Content="Sign In"
-                Command="{Binding ShowLoginCommand}"
-                Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                FontSize="12" Padding="8,4" VerticalAlignment="Center"
-                ToolTip.Tip="Sign in to Resonite" />
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4"
+                    HorizontalAlignment="Right" VerticalAlignment="Center">
+            <Button Content="Sign In"
+                    Command="{Binding ShowLoginCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="12" Padding="8,4" VerticalAlignment="Center"
+                    ToolTip.Tip="Sign in to Resonite" />
+            <Button Command="{Binding OpenSettingsCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Settings">
+                <Path Width="18" Height="18"
+                      Data="{StaticResource IconSettings}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
+        </StackPanel>
 
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
             <Button x:Name="MuteBtn"

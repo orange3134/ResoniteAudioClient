@@ -55,10 +55,9 @@ public static class RuntimeBootstrap
         if (persist)
         {
             SavedEngineDir = normalized;
-            GuiSettingsStore.Save(new GuiSettings
-            {
-                ResoniteInstallPath = normalized
-            });
+            var settings = GuiSettingsStore.Load();
+            settings.ResoniteInstallPath = normalized;
+            GuiSettingsStore.Save(settings);
         }
     }
 

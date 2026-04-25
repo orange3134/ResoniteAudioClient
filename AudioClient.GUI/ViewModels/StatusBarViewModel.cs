@@ -37,6 +37,7 @@ public partial class StatusBarViewModel : ObservableObject
     public Action<float>? OnSetUIVolume { get; set; }
     public Action<string>? OnSetVoiceMode { get; set; }
     public Action? OnShowLogin { get; set; }
+    public Action? OnOpenSettings { get; set; }
     public Func<List<DeviceInfo>>? OnGetInputDevices { get; set; }
     public Func<List<DeviceInfo>>? OnGetOutputDevices { get; set; }
     public Action<int>? OnSetInputDevice { get; set; }
@@ -100,6 +101,9 @@ public partial class StatusBarViewModel : ObservableObject
 
     [RelayCommand]
     private void ShowLogin() => OnShowLogin?.Invoke();
+
+    [RelayCommand]
+    private void OpenSettings() => OnOpenSettings?.Invoke();
 
     [RelayCommand]
     private void ToggleVoiceModePopup() => IsVoiceModePopupOpen = !IsVoiceModePopupOpen;

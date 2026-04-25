@@ -43,4 +43,5 @@ public static class GuiSettingsStore
 public sealed class GuiSettings
 {
     public string? ResoniteInstallPath { get; set; }
+    public bool AutoEquipAudioClientAvatar { get; set; } = true;
 }

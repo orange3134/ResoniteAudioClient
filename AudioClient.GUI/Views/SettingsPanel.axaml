@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             x:Class="AudioClient.GUI.Views.SettingsPanel"
+             x:DataType="vm:SettingsViewModel">
+
+    <Grid Background="#BB000000" PointerPressed="Backdrop_PointerPressed">
+        <Border Background="{StaticResource BrushBgMid}"
+                CornerRadius="8" Padding="24"
+                MaxWidth="460" MinWidth="360"
+                HorizontalAlignment="Center" VerticalAlignment="Center"
+                PointerPressed="Card_PointerPressed">
+            <StackPanel Spacing="18">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Settings"
+                                   FontSize="18" FontWeight="SemiBold"
+                                   Foreground="{StaticResource BrushTextPrimary}" />
+                        <TextBlock Text="Configure AudioClient behavior."
+                                   FontSize="12"
+                                   Foreground="{StaticResource BrushTextMuted}" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Content="X"
+                            Command="{Binding CloseCommand}"
+                            Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                            Padding="8,4" />
+                </Grid>
+
+                <Border Background="{StaticResource BrushBgDark}" CornerRadius="6" Padding="16">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                        <StackPanel Grid.Column="0" Spacing="4">
+                            <TextBlock Text="Auto-equip AudioClient Avatar"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource BrushTextPrimary}" />
+                            <TextBlock Text="Automatically switch to the AudioClient Avatar after joining a running session."
+                                       TextWrapping="Wrap"
+                                       FontSize="12"
+                                       Foreground="{StaticResource BrushTextMuted}" />
+                            <TextBlock Text="Avatar record: resrec:///U-orange/R-019dc2f5-304e-7678-bfd9-947869ad33b1"
+                                       TextWrapping="Wrap"
+                                       FontSize="11"
+                                       Foreground="{StaticResource BrushTextMuted}" />
+                        </StackPanel>
+                        <CheckBox Grid.Column="1"
+                                  IsChecked="{Binding AutoEquipAudioClientAvatar, Mode=TwoWay}"
+                                  VerticalAlignment="Top"
+                                  HorizontalAlignment="Right" />
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

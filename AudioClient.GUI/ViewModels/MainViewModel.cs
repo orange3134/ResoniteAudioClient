@@ -6,12 +6,14 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AudioClient.Core;
+using AudioClient.GUI.Services;
 
 namespace AudioClient.GUI.ViewModels;
 
 public partial class MainViewModel : ObservableObject
 {
     private EngineHost? _host;
+    private readonly GuiSettings _guiSettings;
 
     [ObservableProperty] private bool _isEngineReady = false;
     [ObservableProperty] private bool _isLoggedIn = false;
@@ -33,9 +35,11 @@ public partial class MainViewModel : ObservableObject
     public UserInfoViewModel UserInfoPopup { get; }
     public ChatViewModel Chat { get; }
     public NewSessionViewModel NewSession { get; }
+    public SettingsViewModel Settings { get; }
 
     public MainViewModel(string appDir, string engineDir, string[] args)
     {
+        _guiSettings = GuiSettingsStore.Load();
         SessionList = new SessionListViewModel();
         SessionDetail = new SessionDetailViewModel();
         MemberList = new MemberListViewModel();
@@ -47,6 +51,18 @@ public partial class MainViewModel : ObservableObject
         UserInfoPopup = new UserInfoViewModel();
         Chat = new ChatViewModel();
         NewSession = new NewSessionViewModel();
+        Settings = new SettingsViewModel
+        {
+            AutoEquipAudioClientAvatar = _guiSettings.AutoEquipAudioClientAvatar
+        };
+
+        Settings.AutoEquipAudioClientAvatarChanged = enabled =>
+        {
+            _guiSettings.AutoEquipAudioClientAvatar = enabled;
+            GuiSettingsStore.Save(_guiSettings);
+            if (_host != null)
+                _host.Sessions.AutoEquipAudioClientAvatarEnabled = enabled;
+        };
 
         Task.Run(() => InitializeEngineAsync(appDir, engineDir, args));
     }
@@ -73,6 +89,7 @@ public partial class MainViewModel : ObservableObject
                     () => UpdateStatus("Engine ready.")));
 
             _host = host;
+            host.Sessions.AutoEquipAudioClientAvatarEnabled = _guiSettings.AutoEquipAudioClientAvatar;
 
             // Icon fetch callback (shared for member/contact/chat panels)
             Func<string, Task<string?>> fetchIcon = userId => host.Contacts.GetUserIconUrlAsync(userId);
@@ -141,6 +158,7 @@ public partial class MainViewModel : ObservableObject
             StatusBar.OnSetVoiceMode = mode => host.PostToEngine(() => host.Users.SetVoiceMode(mode));
             StatusBar.OnShowLogin = () => _ = Dispatcher.UIThread.InvokeAsync(() =>
                 Login.ShowLogin(host.Auth.IsLoggedIn, host.Auth.CurrentUsername ?? ""));
+            StatusBar.OnOpenSettings = () => _ = Dispatcher.UIThread.InvokeAsync(Settings.Show);
             StatusBar.OnGetInputDevices = () => host.Audio.GetInputDevices();
             StatusBar.OnGetOutputDevices = () => host.Audio.GetOutputDevices();
             StatusBar.OnSetInputDevice = index => host.PostToEngine(() => host.Audio.SetInputDevice(index));
