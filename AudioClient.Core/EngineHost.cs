@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -75,9 +76,22 @@ public class EngineHost : IDisposable
 
         await engine.Initialize(engineDir, useRenderer: false, options, systemInfo, initProgress);
         Engine.Config.DisableIntroTutorial = true;
+        SetRendererName(engine, "AudioClient");
         Userspace.SetupUserspace(engine);
 
         return new EngineHost(engine);
+    }
+
+    // FrooxEngine.RenderSystem.RendererName は public string { get; private set; }。
+    // 通常は外部レンダラープロセスからのハンドシェイクで設定されるが、useRenderer: false
+    // の AudioClient ではセットされず空文字列のまま SessionConnection 経由で peer に
+    // 送られて識別できない。reflection で private setter を呼んで明示的に名乗る。
+    private static void SetRendererName(Engine engine, string name)
+    {
+        typeof(RenderSystem)
+            .GetProperty(nameof(RenderSystem.RendererName), BindingFlags.Public | BindingFlags.Instance)
+            ?.GetSetMethod(nonPublic: true)
+            ?.Invoke(engine.RenderSystem, new object[] { name });
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
