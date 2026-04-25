@@ -28,9 +28,9 @@ public partial class NewSessionViewModel : ObservableObject
 
     public void Show()
     {
-        SessionName = "New Session";
+        SessionName = "[AudioClient]おしゃべりしよう";
         MaxUsers = 16;
-        SelectedAccessLevel = "Contacts";
+        SelectedAccessLevel = "Anyone";
         SelectedTemplate = "AudioClientWorld";
         WorldRecordUrl = "";
         IsStarting = false;

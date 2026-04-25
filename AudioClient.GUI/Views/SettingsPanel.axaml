@@ -36,10 +36,6 @@
                                        TextWrapping="Wrap"
                                        FontSize="12"
                                        Foreground="{StaticResource BrushTextMuted}" />
-                            <TextBlock Text="Avatar record: resrec:///U-orange/R-019dc2f5-304e-7678-bfd9-947869ad33b1"
-                                       TextWrapping="Wrap"
-                                       FontSize="11"
-                                       Foreground="{StaticResource BrushTextMuted}" />
                         </StackPanel>
                         <CheckBox Grid.Column="1"
                                   IsChecked="{Binding AutoEquipAudioClientAvatar, Mode=TwoWay}"
