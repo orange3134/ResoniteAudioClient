@@ -91,6 +91,9 @@ public class UserService
         {
             var headPos = capturedTarget.HeadPosition;
             capturedLocal.JumpToPoint(headPos, 1.0f);
+
+            var loco = capturedLocal.Slot.GetComponentInChildren<LocomotionController>();
+            if (loco != null) SwitchToNoClip(loco);
         });
     }
 
@@ -113,6 +116,23 @@ public class UserService
             result.Add(isActive ? $"[ACTIVE] {name}" : name);
         }
         return result;
+    }
+
+    private static void SwitchToNoClip(LocomotionController loco)
+    {
+        foreach (var m in loco.LocomotionModules)
+        {
+            if (m == null) continue;
+            string name;
+            try { name = m.LocomotionName.ToString(); } catch { name = m.GetType().Name; }
+            if (name.ToLowerInvariant().Contains("noclip") ||
+                m.GetType().Name.ToLowerInvariant().Contains("noclip"))
+            {
+                if (loco.ActiveModule != m)
+                    loco.ActiveModule = m;
+                return;
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

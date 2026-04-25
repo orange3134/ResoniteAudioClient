@@ -70,11 +70,14 @@ public partial class ChatViewModel : ObservableObject
             _ = callback(textArg, filePath);
     }
 
+    public event EventHandler? ScrollToBottomRequested;
+
     public void LoadPosts(List<ChatPostInfo> posts)
     {
         Posts.Clear();
         foreach (var post in posts)
             Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage));
+        ScrollToBottomRequested?.Invoke(this, EventArgs.Empty);
     }
 
     public void AddPost(ChatPostInfo post)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
@@ -13,6 +14,7 @@ public partial class ChatPanel : UserControl
 {
     private ScrollViewer? _scrollViewer;
     private ChatViewModel? _vm;
+    private DateTime _scrollToBottomUntil = DateTime.MinValue;
 
     private static readonly string[] SupportedImageExtensions = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
 
@@ -24,15 +26,28 @@ public partial class ChatPanel : UserControl
         AddHandler(DragDrop.DropEvent, OnDrop);
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
 
+        // 画像の非同期ロードでコンテンツが伸びても追従するため、ウィンドウ内はレイアウト更新のたびに再スクロール
+        LayoutUpdated += (_, _) =>
+        {
+            if (DateTime.UtcNow < _scrollToBottomUntil)
+                _scrollViewer?.ScrollToEnd();
+        };
+
         DataContextChanged += (_, _) =>
         {
             if (_vm != null)
+            {
                 _vm.Posts.CollectionChanged -= OnPostsChanged;
+                _vm.ScrollToBottomRequested -= OnScrollToBottomRequested;
+            }
 
             _vm = DataContext as ChatViewModel;
 
             if (_vm != null)
+            {
                 _vm.Posts.CollectionChanged += OnPostsChanged;
+                _vm.ScrollToBottomRequested += OnScrollToBottomRequested;
+            }
         };
     }
 
@@ -67,7 +82,13 @@ public partial class ChatPanel : UserControl
     private void OnPostsChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
         if (e.Action == NotifyCollectionChangedAction.Add)
-            Dispatcher.UIThread.Post(() => _scrollViewer?.ScrollToEnd());
+            Dispatcher.UIThread.Post(() => _scrollViewer?.ScrollToEnd(), Avalonia.Threading.DispatcherPriority.Background);
+    }
+
+    private void OnScrollToBottomRequested(object? sender, System.EventArgs e)
+    {
+        _scrollToBottomUntil = DateTime.UtcNow.AddSeconds(5);
+        Dispatcher.UIThread.Post(() => _scrollViewer?.ScrollToEnd(), Avalonia.Threading.DispatcherPriority.Background);
     }
 
     private void InputTextBox_KeyDown(object? sender, KeyEventArgs e)
