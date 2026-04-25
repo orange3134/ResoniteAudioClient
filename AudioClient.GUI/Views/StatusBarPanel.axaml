@@ -10,33 +10,34 @@
 
     <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="12,0">
 
-        <!-- Login button (rightmost) -->
         <Button Grid.Column="3" Content="Sign In"
                 Command="{Binding ShowLoginCommand}"
                 Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                 FontSize="12" Padding="8,4" VerticalAlignment="Center"
                 ToolTip.Tip="Sign in to Resonite" />
 
-        <!-- Mic group: [🎤 mute] [▼ input device] [🟢 voice indicator] [▼ voice mode] -->
         <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-
-            <!-- Mute button — background glows green when mic input is detected -->
-            <Button x:Name="MuteBtn" Content="{Binding MuteButtonText}"
+            <Button x:Name="MuteBtn"
                     Command="{Binding ToggleMuteCommand}"
                     Background="{Binding IsMicActive, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='GreenDim:Transparent'}"
                     Foreground="{Binding IsMuted, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Red:TextPrimary'}"
-                    FontSize="18" Padding="6" VerticalAlignment="Center"
-                    ToolTip.Tip="Toggle Mute" />
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Toggle Mute">
+                <Path Width="18" Height="18"
+                      Data="{Binding IsMuted, Converter={x:Static v:BoolToGeometryConverter.Instance}, ConverterParameter='IconMicOff:IconMic'}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
 
-            <!-- Input device dropdown — immediately right of mic icon -->
-            <Button x:Name="InputDeviceBtn" Content="▼" Command="{Binding ToggleInputDevicePopupCommand}"
+            <Button x:Name="InputDeviceBtn"
+                    Command="{Binding ToggleInputDevicePopupCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="9" Padding="6" VerticalAlignment="Center"
-                    ToolTip.Tip="Input device" />
-            <!--
-                IsOpen uses TwoWay so that light-dismiss (clicking outside) writes
-                IsInputDevicePopupOpen=false back to the VM.
-            -->
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Input device">
+                <Path Width="12" Height="12" Data="{StaticResource IconChevronDown}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
             <Popup IsOpen="{Binding IsInputDevicePopupOpen, Mode=TwoWay}"
                    PlacementTarget="{Binding ElementName=InputDeviceBtn}"
                    Placement="Top" IsLightDismissEnabled="True">
@@ -65,63 +66,91 @@
                 </Border>
             </Popup>
 
-            <!-- Current voice mode indicator -->
-            <TextBlock Text="{Binding VoiceModeLabel}" FontSize="13" VerticalAlignment="Center"
-                       Margin="4,0,2,0" ToolTip.Tip="{Binding CurrentVoiceMode}" />
+            <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="6" Margin="4,0,2,0"
+                    ToolTip.Tip="{Binding CurrentVoiceMode}">
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Width="10" Height="10"
+                             Fill="{Binding CurrentVoiceMode, Converter={x:Static v:VoiceModeBrushConverter.Instance}}"
+                             VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
 
-            <!-- Voice mode dropdown button -->
-            <Button Content="▼" Command="{Binding ToggleVoiceModePopupCommand}"
+            <Button Command="{Binding ToggleVoiceModePopupCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="9" Padding="6" VerticalAlignment="Center"
-                    ToolTip.Tip="Voice mode" />
-            <!--
-                IsOpen uses TwoWay so that light-dismiss (clicking outside) writes
-                IsVoiceModePopupOpen=false back to the VM. Without TwoWay the VM
-                keeps thinking the popup is open, and the first click of ▼ just
-                toggles it to false (invisible no-op), requiring a second click.
-            -->
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Voice mode">
+                <Path Width="12" Height="12" Data="{StaticResource IconChevronDown}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
             <Popup IsOpen="{Binding IsVoiceModePopupOpen, Mode=TwoWay}"
                    PlacementTarget="{Binding ElementName=MuteBtn}"
                    Placement="Top" IsLightDismissEnabled="True">
                 <Border Background="{StaticResource BrushBgLight}" CornerRadius="6" Padding="6"
                         BoxShadow="0 4 16 0 #88000000">
                     <StackPanel Spacing="2" Width="160">
-                        <Button Content="🟣 Whisper" Command="{Binding SetVoiceModeCommand}" CommandParameter="Whisper"
+                        <Button Command="{Binding SetVoiceModeCommand}" CommandParameter="Whisper"
                                 Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Padding="8,5" />
-                        <Button Content="🟢 Normal" Command="{Binding SetVoiceModeCommand}" CommandParameter="Normal"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushPurple}" VerticalAlignment="Center" />
+                                <TextBlock Text="Whisper" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetVoiceModeCommand}" CommandParameter="Normal"
                                 Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Padding="8,5" />
-                        <Button Content="🟡 Shout" Command="{Binding SetVoiceModeCommand}" CommandParameter="Shout"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushGreen}" VerticalAlignment="Center" />
+                                <TextBlock Text="Normal" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetVoiceModeCommand}" CommandParameter="Shout"
                                 Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Padding="8,5" />
-                        <Button Content="🔵 Broadcast" Command="{Binding SetVoiceModeCommand}" CommandParameter="Broadcast"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushYellow}" VerticalAlignment="Center" />
+                                <TextBlock Text="Shout" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetVoiceModeCommand}" CommandParameter="Broadcast"
                                 Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
                                 HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
-                                Padding="8,5" />
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushCyan}" VerticalAlignment="Center" />
+                                <TextBlock Text="Broadcast" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Border>
             </Popup>
-
         </StackPanel>
 
-        <!-- Volume group: [🔊] [▼ output device] [master slider] [%] [▼ volume details] -->
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4" Margin="8,0">
-
-            <Button x:Name="SpeakerIcon" Content="{Binding SpeakerButtonText}"
+            <Button x:Name="SpeakerIcon"
                     Command="{Binding ToggleSpeakerMuteCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="14" Padding="6" VerticalAlignment="Center"
-                    ToolTip.Tip="Toggle Speaker Mute" />
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Toggle Speaker Mute">
+                <Path Width="18" Height="18"
+                      Data="{Binding IsSpeakerMuted, Converter={x:Static v:BoolToGeometryConverter.Instance}, ConverterParameter='IconSpeakerOff:IconSpeaker'}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
 
-            <!-- Output device dropdown — immediately right of speaker icon -->
-            <Button x:Name="OutputDeviceBtn" Content="▼" Command="{Binding ToggleOutputDevicePopupCommand}"
+            <Button x:Name="OutputDeviceBtn"
+                    Command="{Binding ToggleOutputDevicePopupCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="9" Padding="6" VerticalAlignment="Center"
-                    ToolTip.Tip="Output device" />
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Output device">
+                <Path Width="12" Height="12" Data="{StaticResource IconChevronDown}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
             <Popup IsOpen="{Binding IsOutputDevicePopupOpen, Mode=TwoWay}"
                    PlacementTarget="{Binding ElementName=OutputDeviceBtn}"
                    Placement="Top" IsLightDismissEnabled="True">
@@ -155,12 +184,14 @@
             <TextBlock Text="{Binding MasterVolume, StringFormat={}{0:P0}}"
                        Foreground="{StaticResource BrushTextMuted}" FontSize="12" VerticalAlignment="Center" />
 
-            <!-- Volume details dropdown -->
-            <Button Content="▼" Command="{Binding ToggleVolumePopupCommand}"
+            <Button Command="{Binding ToggleVolumePopupCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
-                    FontSize="9" Padding="6" VerticalAlignment="Center"
-                    ToolTip.Tip="Volume details" />
-            <!-- Same TwoWay fix as other popups -->
+                    Padding="6" VerticalAlignment="Center"
+                    ToolTip.Tip="Volume details">
+                <Path Width="12" Height="12" Data="{StaticResource IconChevronDown}"
+                      Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                      Stretch="Uniform" />
+            </Button>
             <Popup IsOpen="{Binding IsVolumePopupOpen, Mode=TwoWay}"
                    PlacementTarget="{Binding ElementName=SpeakerIcon}"
                    Placement="Top" IsLightDismissEnabled="True">
@@ -198,7 +229,6 @@
                     </StackPanel>
                 </Border>
             </Popup>
-
         </StackPanel>
 
     </Grid>

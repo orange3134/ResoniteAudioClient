@@ -13,22 +13,19 @@
             BoxShadow="0 8 32 0 #88000000">
 
         <StackPanel Spacing="16">
-            <!-- Title row -->
             <Grid>
                 <TextBlock Text="Join Session" Foreground="{StaticResource BrushTextPrimary}"
                            FontSize="14"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <Button Content="✕" Command="{Binding CloseCommand}"
+                <Button Content="X" Command="{Binding CloseCommand}"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
                         Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                         Padding="4" FontSize="14" />
             </Grid>
 
-            <!-- Session name -->
             <TextBlock h:ResoniteRichText.Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
                        FontSize="22" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
 
-            <!-- Info chips -->
             <WrapPanel Orientation="Horizontal">
                 <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
                     <StackPanel Orientation="Horizontal" Spacing="4">
@@ -38,7 +35,9 @@
                 </Border>
                 <Border Background="{StaticResource BrushBgMid}" CornerRadius="4" Padding="8,4" Margin="0,0,8,4">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock Text="👥" FontSize="12" VerticalAlignment="Center" />
+                        <Path Width="12" Height="12" Data="{StaticResource IconUsers}"
+                              Fill="{StaticResource BrushTextMuted}" Stretch="Uniform"
+                              VerticalAlignment="Center" />
                         <TextBlock Text="{Binding UserCountText}" Foreground="{StaticResource BrushTextPrimary}" FontSize="12" />
                     </StackPanel>
                 </Border>
@@ -47,7 +46,6 @@
                 </Border>
             </WrapPanel>
 
-            <!-- User list -->
             <StackPanel IsVisible="{Binding Users.Count, Converter={x:Static v:NotZeroConverter.Instance}}" Spacing="6">
                 <TextBlock Text="IN SESSION" Foreground="{StaticResource BrushTextMuted}"
                            FontSize="10" FontWeight="SemiBold" LetterSpacing="1" />
@@ -63,7 +61,6 @@
                 </ScrollViewer>
             </StackPanel>
 
-            <!-- Join button -->
             <Button Content="Join Session" Command="{Binding JoinCommand}"
                     Background="{StaticResource BrushAccent}" Foreground="White"
                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"

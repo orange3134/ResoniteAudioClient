@@ -8,7 +8,6 @@
              Background="{StaticResource BrushBgMid}">
 
     <UserControl.Styles>
-        <!-- Buttons hidden by default but always take layout space to prevent layout shift -->
         <Style Selector="Grid.MemberRow StackPanel.HoverActions">
             <Setter Property="Opacity" Value="0"/>
             <Setter Property="IsHitTestVisible" Value="False"/>
@@ -17,15 +16,12 @@
             <Setter Property="Opacity" Value="1"/>
             <Setter Property="IsHitTestVisible" Value="True"/>
         </Style>
-        <!-- Ensure hover button background is fully opaque -->
         <Style Selector="StackPanel.HoverActions Button:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="{StaticResource BrushBgHover}"/>
         </Style>
     </UserControl.Styles>
 
     <Grid RowDefinitions="Auto,*">
-
-        <!-- Header -->
         <Border Grid.Row="0" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1" Padding="12,10">
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <TextBlock Text="MEMBERS" Foreground="{StaticResource BrushTextMuted}"
@@ -35,36 +31,24 @@
             </StackPanel>
         </Border>
 
-        <!-- Member List -->
         <ScrollViewer Grid.Row="1">
             <ItemsControl ItemsSource="{Binding Members}" Margin="8,8">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:MemberItemViewModel">
-                        <!--
-                            Background="Transparent" is required so the entire row (including
-                            empty space) is hit-testable. Without it the pointer-over state is
-                            only active when the mouse is directly over a child element.
-                        -->
                         <Grid Classes="MemberRow" Background="Transparent"
                               Margin="0,2" MinHeight="30" ColumnDefinitions="Auto,Auto,*">
-
-                            <!-- User icon + status dot overlay -->
                             <Grid Grid.Column="0" Width="22" Height="22" Margin="0,0,6,0" VerticalAlignment="Center">
-                                <!-- Placeholder -->
                                 <Border CornerRadius="11" Background="{StaticResource BrushBgDark}">
                                     <TextBlock Text="{Binding IconLetter}"
                                                HorizontalAlignment="Center" VerticalAlignment="Center"
                                                FontSize="9" Foreground="{StaticResource BrushTextMuted}" />
                                 </Border>
-                                <!-- Loaded image -->
                                 <Border CornerRadius="11" ClipToBounds="True"
                                         IsVisible="{Binding IconBitmap, Converter={x:Static ObjectConverters.IsNotNull}}">
                                     <Image Source="{Binding IconBitmap}" Stretch="UniformToFill" />
                                 </Border>
-                                <!-- Speaking indicator: green ring around icon -->
                                 <Border CornerRadius="11" BorderBrush="#43b581" BorderThickness="2"
                                         IsVisible="{Binding IsSpeaking}" />
-                                <!-- Status dot: bottom-right overlay -->
                                 <Border Width="8" Height="8" CornerRadius="4"
                                         HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                         Margin="0,0,-1,-1"
@@ -72,12 +56,12 @@
                                         BorderBrush="{StaticResource BrushBgMid}" BorderThickness="1.5" />
                             </Grid>
 
-                            <!-- Contact icon -->
-                            <TextBlock Grid.Column="1" Text="👥" FontSize="10" VerticalAlignment="Center"
-                                       IsVisible="{Binding IsContact}" Margin="0,0,4,0"
-                                       ToolTip.Tip="In your contacts" />
+                            <Path Grid.Column="1" Width="12" Height="12" Data="{StaticResource IconContact}"
+                                  Fill="{StaticResource BrushGreen}" Stretch="Uniform"
+                                  IsVisible="{Binding IsContact}" Margin="0,0,4,0"
+                                  VerticalAlignment="Center"
+                                  ToolTip.Tip="In your contacts" />
 
-                            <!-- Username + hover buttons (same cell, buttons overlay on right) -->
                             <Grid Grid.Column="2">
                                 <TextBlock h:ResoniteRichText.Text="{Binding Label}"
                                            Foreground="{StaticResource BrushTextPrimary}"
@@ -99,12 +83,10 @@
                                             FontSize="10" Padding="4,2" CornerRadius="3" />
                                 </StackPanel>
                             </Grid>
-
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
         </ScrollViewer>
-
     </Grid>
 </UserControl>

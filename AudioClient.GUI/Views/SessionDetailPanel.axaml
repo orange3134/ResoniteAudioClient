@@ -8,8 +8,6 @@
 
     <Border BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1">
         <Grid ColumnDefinitions="*,Auto" Height="44" Margin="12,0">
-
-            <!-- Left: placeholder or session info -->
             <TextBlock Grid.Column="0"
                        Text="No session focused"
                        Foreground="{StaticResource BrushTextMuted}"
@@ -30,7 +28,9 @@
                 </Border>
                 <Border Background="{StaticResource BrushBgDark}" CornerRadius="4" Padding="6,2">
                     <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock Text="👥" FontSize="11" VerticalAlignment="Center" />
+                        <Path Width="12" Height="12" Data="{StaticResource IconUsers}"
+                              Fill="{StaticResource BrushTextMuted}" Stretch="Uniform"
+                              VerticalAlignment="Center" />
                         <TextBlock Text="{Binding UserCountText}"
                                    Foreground="{StaticResource BrushTextPrimary}" FontSize="11" />
                     </StackPanel>
@@ -41,20 +41,22 @@
                 </Border>
             </StackPanel>
 
-            <!-- Right: action buttons -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
                         VerticalAlignment="Center"
                         IsVisible="{Binding HasSession}">
-                <Button Content="⚙" Command="{Binding OpenSettingsCommand}"
+                <Button Command="{Binding OpenSettingsCommand}"
                         IsVisible="{Binding IsHost}"
                         Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                         Padding="8,4" CornerRadius="4"
-                        ToolTip.Tip="セッション設定" />
+                        ToolTip.Tip="Session settings">
+                    <Path Width="14" Height="14" Data="{StaticResource IconSettings}"
+                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                          Stretch="Uniform" />
+                </Button>
                 <Button Content="Leave" Command="{Binding LeaveCommand}"
                         Background="{StaticResource BrushRed}" Foreground="White"
                         Padding="10,4" CornerRadius="4" FontSize="12" />
             </StackPanel>
-
         </Grid>
     </Border>
 </UserControl>

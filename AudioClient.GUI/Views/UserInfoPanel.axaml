@@ -12,36 +12,36 @@
             BoxShadow="0 8 32 0 #88000000">
 
         <StackPanel Spacing="12">
-            <!-- Title + Close -->
             <Grid>
                 <TextBlock Text="User Info" Foreground="{StaticResource BrushTextPrimary}"
                            FontSize="18" FontWeight="SemiBold"
                            HorizontalAlignment="Center" VerticalAlignment="Center" />
-                <Button Content="✕" Command="{Binding CloseCommand}"
+                <Button Content="X" Command="{Binding CloseCommand}"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
                         Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                         Padding="4" FontSize="14" />
             </Grid>
 
-            <!-- Username -->
             <StackPanel Spacing="2">
                 <TextBlock Text="Username" Foreground="{StaticResource BrushTextMuted}" FontSize="11" />
                 <TextBlock h:ResoniteRichText.Text="{Binding UserName}" Foreground="{StaticResource BrushTextPrimary}"
                            FontSize="15" FontWeight="SemiBold" />
             </StackPanel>
 
-            <!-- User ID -->
             <StackPanel Spacing="2">
                 <TextBlock Text="User ID" Foreground="{StaticResource BrushTextMuted}" FontSize="11" />
                 <TextBlock Text="{Binding UserId}" Foreground="{StaticResource BrushTextPrimary}"
                            FontSize="12" TextTrimming="CharacterEllipsis" />
             </StackPanel>
 
-            <!-- Contact badge -->
-            <TextBlock IsVisible="{Binding IsContact}" Text="👥 In your contacts"
-                       Foreground="{StaticResource BrushGreen}" FontSize="12" />
+            <StackPanel IsVisible="{Binding IsContact}" Orientation="Horizontal" Spacing="6">
+                <Path Width="14" Height="14" Data="{StaticResource IconContact}"
+                      Fill="{StaticResource BrushGreen}" Stretch="Uniform"
+                      VerticalAlignment="Center" />
+                <TextBlock Text="In your contacts"
+                           Foreground="{StaticResource BrushGreen}" FontSize="12" VerticalAlignment="Center" />
+            </StackPanel>
 
-            <!-- Add Contact button (shown when not a contact) -->
             <Button IsVisible="{Binding !IsContact}"
                     Content="Add to Contacts" Command="{Binding AddContactCommand}"
                     Background="{StaticResource BrushAccent}" Foreground="White"

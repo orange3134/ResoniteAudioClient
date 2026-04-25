@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using Avalonia;
 using Avalonia.Data.Converters;
 using Avalonia.Media;
 
@@ -90,4 +91,46 @@ public class BoolToStringConverter : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
+}
+
+public class BoolToGeometryConverter : IValueConverter
+{
+    public static readonly BoolToGeometryConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (parameter is not string param)
+            return null;
+
+        var parts = param.Split(':', 2);
+        if (parts.Length != 2)
+            return null;
+
+        var key = value is bool b && b ? parts[0] : parts[1];
+        return Application.Current?.Resources.TryGetResource(key, null, out var resource) == true ? resource : null;
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+public class VoiceModeBrushConverter : IValueConverter
+{
+    public static readonly VoiceModeBrushConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => (value as string) switch
+        {
+            "Whisper" => GetBrush("BrushPurple"),
+            "Normal" => GetBrush("BrushGreen"),
+            "Shout" => GetBrush("BrushYellow"),
+            "Broadcast" => GetBrush("BrushCyan"),
+            _ => GetBrush("BrushTextMuted")
+        };
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+
+    private static object? GetBrush(string key)
+        => Application.Current?.Resources.TryGetResource(key, null, out var resource) == true ? resource : null;
 }

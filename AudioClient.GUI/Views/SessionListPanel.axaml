@@ -8,14 +8,11 @@
              Background="{StaticResource BrushBgMid}">
 
     <Grid RowDefinitions="Auto,*,Auto">
-
-        <!-- Header -->
         <Border Grid.Row="0" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1" Padding="12,10">
             <TextBlock Text="SESSIONS" Foreground="{StaticResource BrushTextMuted}"
                        FontSize="11" FontWeight="SemiBold" LetterSpacing="1" />
         </Border>
 
-        <!-- Session List -->
         <ScrollViewer Grid.Row="1">
             <ItemsControl ItemsSource="{Binding Sessions}" Margin="4,4,4,0">
                 <ItemsControl.ItemTemplate>
@@ -27,7 +24,9 @@
                                 Background="{Binding IsFocused, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Accent:Transparent'}"
                                 Padding="8,6" CornerRadius="4" Margin="0,1">
                             <Grid ColumnDefinitions="Auto,*,Auto">
-                                <TextBlock Grid.Column="0" Text="🔊 " VerticalAlignment="Center" FontSize="13" />
+                                <Path Grid.Column="0" Width="14" Height="14" Data="{StaticResource IconSpeaker}"
+                                      Fill="{StaticResource BrushTextMuted}" Stretch="Uniform"
+                                      VerticalAlignment="Center" Margin="0,0,6,0" />
                                 <StackPanel Grid.Column="1" Spacing="1">
                                     <TextBlock h:ResoniteRichText.Text="{Binding Name}" Foreground="{StaticResource BrushTextPrimary}"
                                                FontSize="13" TextTrimming="CharacterEllipsis" />
@@ -43,7 +42,6 @@
             </ItemsControl>
         </ScrollViewer>
 
-        <!-- New Session Button -->
         <Border Grid.Row="2" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,1,0,0" Padding="4,4">
             <Button Content="+ New Session"
                     Command="{Binding OpenNewSessionCommand}"
@@ -51,6 +49,5 @@
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                     Padding="8,6" CornerRadius="4" FontSize="13" />
         </Border>
-
     </Grid>
 </UserControl>
