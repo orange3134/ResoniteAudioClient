@@ -14,6 +14,10 @@ public partial class MainViewModel : ObservableObject
 {
     private EngineHost? _host;
     private readonly GuiSettings _guiSettings;
+    private readonly string _appDir;
+    private readonly string _engineDir;
+    private readonly string[] _args;
+    private bool _engineInitializationStarted;
 
     [ObservableProperty] private bool _isEngineReady = false;
     [ObservableProperty] private bool _isLoggedIn = false;
@@ -37,8 +41,11 @@ public partial class MainViewModel : ObservableObject
     public NewSessionViewModel NewSession { get; }
     public SettingsViewModel Settings { get; }
 
-    public MainViewModel(string appDir, string engineDir, string[] args)
+    public MainViewModel(string appDir, string engineDir, string[] args, bool skipEngineInitialization = false)
     {
+        _appDir = appDir;
+        _engineDir = engineDir;
+        _args = args;
         _guiSettings = GuiSettingsStore.Load();
         SessionList = new SessionListViewModel();
         SessionDetail = new SessionDetailViewModel();
@@ -64,7 +71,22 @@ public partial class MainViewModel : ObservableObject
                 _host.Sessions.AutoEquipAudioClientAvatarEnabled = enabled;
         };
 
-        Task.Run(() => InitializeEngineAsync(appDir, engineDir, args));
+        if (skipEngineInitialization)
+        {
+            StatusMessage = "Engine initialization skipped (--main-window-with-vm-no-engine).";
+            return;
+        }
+
+        StartEngineInitialization();
+    }
+
+    public void StartEngineInitialization()
+    {
+        if (_engineInitializationStarted)
+            return;
+
+        _engineInitializationStarted = true;
+        Task.Run(() => InitializeEngineAsync(_appDir, _engineDir, _args));
     }
 
     [RelayCommand]
