@@ -83,8 +83,7 @@
     <MakeDir Directories="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
     <MakeDir Directories="$(AppTargetDir)runtimes\win-x64\native\" Condition="'$(CopyToGameFolder)' == 'true'" />
     <Copy SourceFiles="@(AppFiles)" DestinationFolder="$(AppTargetDir)" Condition="'$(CopyToGameFolder)' == 'true'" />
-    <Copy SourceFiles="@(NativeFiles)" DestinationFolder="$(AppTargetDir)runtimes\win-x64\native\"
-          Condition="'$(CopyToGameFolder)' == 'true'" />
+    <Copy SourceFiles="@(NativeFiles)" DestinationFolder="$(AppTargetDir)runtimes\win-x64\native\" Condition="'$(CopyToGameFolder)' == 'true'" />
     <Message Text="Copied GUI files to $(AppTargetDir)" Importance="high" Condition="'$(CopyToGameFolder)' == 'true'" />
   </Target>
 

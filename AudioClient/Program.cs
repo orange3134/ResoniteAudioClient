@@ -21,6 +21,7 @@ public class Program
     {
         string appDir = AppDomain.CurrentDomain.BaseDirectory;
         string gameDir = ResolveGameDirectory(appDir);
+        Console.WriteLine($"Resolved Resonite directory: {gameDir}");
 
         foreach (string runtimesPath in EnumerateNativeRuntimePaths(appDir, gameDir))
         {
@@ -63,14 +64,95 @@ public class Program
 
     private static string ResolveGameDirectory(string appDir)
     {
+        // Allow explicit override for troubleshooting and non-standard installs.
+        string? envPath = NormalizeDirectory(Environment.GetEnvironmentVariable("RESONITE_PATH"));
+        if (IsValidGameDirectory(envPath))
+        {
+            return envPath!;
+        }
+
         var normalized = appDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var dirName = Path.GetFileName(normalized);
         if (dirName.Equals("AudioClient", StringComparison.OrdinalIgnoreCase))
         {
-            return Directory.GetParent(normalized)?.FullName ?? normalized;
+            string parent = Directory.GetParent(normalized)?.FullName ?? normalized;
+            if (IsValidGameDirectory(parent))
+                return parent;
         }
 
+        string? current = normalized;
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            if (IsValidGameDirectory(current))
+                return current;
+
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        string? detected = DetectSteamResoniteDirectory();
+        if (IsValidGameDirectory(detected))
+            return detected!;
+
         return normalized;
+    }
+
+    private static bool IsValidGameDirectory(string? path)
+    {
+        string? normalized = NormalizeDirectory(path);
+        if (normalized is null)
+            return false;
+
+        return File.Exists(Path.Combine(normalized, "FrooxEngine.dll"))
+            && File.Exists(Path.Combine(normalized, "Elements.Core.dll"))
+            && File.Exists(Path.Combine(normalized, "SkyFrost.Base.dll"))
+            && Directory.Exists(Path.Combine(normalized, "Locale"));
+    }
+
+    private static string? DetectSteamResoniteDirectory()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            string? home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(home))
+            {
+                string[] candidates =
+                [
+                    Path.Combine(home, ".local", "share", "Steam", "steamapps", "common", "Resonite"),
+                    Path.Combine(home, ".steam", "steam", "steamapps", "common", "Resonite"),
+                    Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam", "steamapps", "common", "Resonite")
+                ];
+
+                foreach (string candidate in candidates)
+                {
+                    if (Directory.Exists(candidate))
+                        return NormalizeDirectory(candidate);
+                }
+            }
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            string[] candidates =
+            [
+                @"C:\Program Files (x86)\Steam\steamapps\common\Resonite",
+                @"C:\Program Files\Steam\steamapps\common\Resonite"
+            ];
+
+            foreach (string candidate in candidates)
+            {
+                if (Directory.Exists(candidate))
+                    return NormalizeDirectory(candidate);
+            }
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeDirectory(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        return Path.GetFullPath(path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
     }
 
     private static IEnumerable<string> EnumerateProbeDirectories(string appDir, string gameDir)
