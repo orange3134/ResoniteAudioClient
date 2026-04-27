@@ -86,7 +86,7 @@ public class EngineHost : IDisposable
         _pollTimer.Dispose();
         // ExitApp triggers AppEnder which calls Engine.RequestShutdown() after saves complete.
         // The update loop must keep running until then so AppEnder can execute.
-        Userspace.ExitApp(saveHomes: false);
+        try { Userspace.ExitApp(saveHomes: false); } catch { }
         // Wait up to 10 seconds; if the engine doesn't shut down cleanly, force-stop the loop.
         _updateThread.Join(TimeSpan.FromSeconds(10));
         _shutdownRequested = true;

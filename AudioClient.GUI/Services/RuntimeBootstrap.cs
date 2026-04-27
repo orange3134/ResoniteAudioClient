@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using Microsoft.Win32;
 
@@ -115,9 +116,7 @@ public static class RuntimeBootstrap
 
     private static void AddNativeRuntimePaths()
     {
-        string currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-
+        var runtimePaths = new List<string>();
         foreach (string probeDir in EnumerateProbeDirectories())
         {
             foreach (string runtimesPath in EnumerateNativeRuntimePaths(probeDir))
@@ -125,14 +124,16 @@ public static class RuntimeBootstrap
                 if (!Directory.Exists(runtimesPath))
                     continue;
 
-                if (pathEntries.Contains(runtimesPath, PathComparer))
-                    continue;
-
-                Environment.SetEnvironmentVariable("PATH", runtimesPath + Path.PathSeparator + currentPath);
-                currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-                pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                runtimePaths.Add(runtimesPath);
+                AddToSearchPath("PATH", runtimesPath);
+                if (!OperatingSystem.IsWindows())
+                {
+                    AddToSearchPath("LD_LIBRARY_PATH", runtimesPath);
+                }
             }
         }
+
+        PreloadNativeLibraries(runtimePaths);
     }
 
     private static void PreloadAssemblies()
@@ -280,4 +281,36 @@ public static class RuntimeBootstrap
 
     private static StringComparison GetPathComparison()
         => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    private static void AddToSearchPath(string variableName, string path)
+    {
+        string currentValue = Environment.GetEnvironmentVariable(variableName) ?? string.Empty;
+        string[] entries = currentValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        if (entries.Contains(path, PathComparer))
+            return;
+
+        Environment.SetEnvironmentVariable(variableName, path + Path.PathSeparator + currentValue);
+    }
+
+    private static void PreloadNativeLibraries(IEnumerable<string> runtimePaths)
+    {
+        foreach (string runtimePath in runtimePaths)
+        {
+            if (!Directory.Exists(runtimePath))
+                continue;
+
+            foreach (string nativeFile in Directory.GetFiles(runtimePath))
+            {
+                if (!(nativeFile.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
+                    || nativeFile.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                    || nativeFile.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                try { NativeLibrary.TryLoad(nativeFile, out _); }
+                catch { }
+            }
+        }
+    }
 }
