@@ -11,6 +11,7 @@ public class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        bool hasExplicitModeArg = args.Any(a => a.StartsWith("--", StringComparison.Ordinal));
         bool minimalGui = args.Any(a => string.Equals(a, "--minimal-gui", StringComparison.OrdinalIgnoreCase));
         bool minimalGuiWithApp = args.Any(a => string.Equals(a, "--minimal-gui-with-app", StringComparison.OrdinalIgnoreCase));
         bool minimalMainWindow = args.Any(a => string.Equals(a, "--minimal-main-window", StringComparison.OrdinalIgnoreCase));
@@ -18,6 +19,11 @@ public class Program
         bool minimalEngineTest = args.Any(a => string.Equals(a, "--minimal-engine-test", StringComparison.OrdinalIgnoreCase));
         bool mainWindowWithVmNoEngine = args.Any(a => string.Equals(a, "--main-window-with-vm-no-engine", StringComparison.OrdinalIgnoreCase));
         bool mainWindowWithDelayedEngine = args.Any(a => string.Equals(a, "--main-window-with-delayed-engine", StringComparison.OrdinalIgnoreCase));
+        if (OperatingSystem.IsLinux() && !hasExplicitModeArg)
+        {
+            // Linux default: start stable UI first, then initialize engine.
+            mainWindowWithDelayedEngine = true;
+        }
         bool useMinimalWindow = minimalGui || minimalGuiWithApp;
         string appDir = AppDomain.CurrentDomain.BaseDirectory;
 
