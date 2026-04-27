@@ -13,6 +13,9 @@ namespace AudioClient;
 public class Program
 {
     private static volatile bool _shutdownRequested = false;
+    private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 
     public static async Task Main(string[] args)
     {
@@ -23,7 +26,7 @@ public class Program
         {
             string currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
             var pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-            if (!pathEntries.Contains(runtimesPath, StringComparer.OrdinalIgnoreCase))
+            if (!pathEntries.Contains(runtimesPath, PathComparer))
             {
                 Environment.SetEnvironmentVariable("PATH", runtimesPath + Path.PathSeparator + currentPath);
                 currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
@@ -73,7 +76,7 @@ public class Program
     private static IEnumerable<string> EnumerateProbeDirectories(string appDir, string gameDir)
     {
         yield return appDir;
-        if (!string.Equals(appDir, gameDir, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(appDir, gameDir, GetPathComparison()))
         {
             yield return gameDir;
         }
@@ -83,13 +86,50 @@ public class Program
     {
         foreach (string probeDir in EnumerateProbeDirectories(appDir, gameDir))
         {
-            string runtimesPath = Path.Combine(probeDir, "runtimes", "win-x64", "native");
-            if (Directory.Exists(runtimesPath))
+            foreach (string runtimesPath in EnumerateNativeRuntimePaths(probeDir))
             {
-                yield return runtimesPath;
+                if (Directory.Exists(runtimesPath))
+                {
+                    yield return runtimesPath;
+                }
             }
         }
     }
+
+    private static IEnumerable<string> EnumerateNativeRuntimePaths(string probeDir)
+    {
+        foreach (string rid in GetNativeRuntimeIdentifiers())
+            yield return Path.Combine(probeDir, "runtimes", rid, "native");
+    }
+
+    private static IEnumerable<string> GetNativeRuntimeIdentifiers()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            yield return "win-x64";
+            yield return "win";
+            yield break;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            yield return "linux-x64";
+            yield return "linux-musl-x64";
+            yield return "linux";
+            yield break;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            yield return "osx-x64";
+            yield return "osx-arm64";
+            yield return "osx";
+            yield break;
+        }
+    }
+
+    private static StringComparison GetPathComparison()
+        => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static async Task RunEngine(string[] args, string appDir, string gameDir)

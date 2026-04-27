@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType Condition="$([MSBuild]::IsOSPlatform('Windows'))">WinExe</OutputType>
+    <OutputType Condition="!$([MSBuild]::IsOSPlatform('Windows'))">Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>AudioClient.GUI</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -10,10 +11,12 @@
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <ApplicationIcon>AudioClientIcon.ico</ApplicationIcon>
 
-    <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
+    <GamePath Condition="$([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
+    <GamePath Condition="!$([MSBuild]::IsOSPlatform('Windows'))">$(HOME)/.local/share/Steam/steamapps/common/Resonite/</GamePath>
     <AppDeployDirName>AudioClient</AppDeployDirName>
     <AppTargetDir>$(GamePath)$(AppDeployDirName)\</AppTargetDir>
-    <CopyToGameFolder>true</CopyToGameFolder>
+    <CopyToGameFolder Condition="'$(CopyToGameFolder)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">true</CopyToGameFolder>
+    <CopyToGameFolder Condition="'$(CopyToGameFolder)' == '' and !$([MSBuild]::IsOSPlatform('Windows'))">false</CopyToGameFolder>
   </PropertyGroup>
 
   <ItemGroup>

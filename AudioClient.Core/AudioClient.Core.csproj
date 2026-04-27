@@ -9,7 +9,8 @@
     <Deterministic>true</Deterministic>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 
-    <GamePath>C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
+    <GamePath Condition="$([MSBuild]::IsOSPlatform('Windows'))">C:\Program Files (x86)\Steam\steamapps\common\Resonite\</GamePath>
+    <GamePath Condition="!$([MSBuild]::IsOSPlatform('Windows'))">$(HOME)/.local/share/Steam/steamapps/common/Resonite/</GamePath>
   </PropertyGroup>
 
   <ItemGroup Condition="!Exists('$(GamePath)')">

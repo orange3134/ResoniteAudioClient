@@ -12,6 +12,9 @@ public static class RuntimeBootstrap
 {
     private static string _appDir = string.Empty;
     private static string[] _launchArgs = [];
+    private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 
     public static string? CurrentEngineDir { get; private set; }
     public static string? SavedEngineDir { get; private set; }
@@ -27,7 +30,7 @@ public static class RuntimeBootstrap
 
         var settings = GuiSettingsStore.Load();
         SavedEngineDir = NormalizeDirectory(settings.ResoniteInstallPath);
-        SuggestedEngineDir = OperatingSystem.IsWindows() ? DetectSteamResoniteDirectory() : null;
+        SuggestedEngineDir = DetectSteamResoniteDirectory();
         CurrentEngineDir = null;
 
         foreach (string? candidate in EnumerateInitialCandidates())
@@ -104,7 +107,7 @@ public static class RuntimeBootstrap
         yield return _appDir;
 
         if (IsValidEngineDirectory(CurrentEngineDir) &&
-            !string.Equals(_appDir, CurrentEngineDir, StringComparison.OrdinalIgnoreCase))
+            !string.Equals(_appDir, CurrentEngineDir, GetPathComparison()))
         {
             yield return CurrentEngineDir!;
         }
@@ -117,16 +120,18 @@ public static class RuntimeBootstrap
 
         foreach (string probeDir in EnumerateProbeDirectories())
         {
-            string runtimesPath = Path.Combine(probeDir, "runtimes", "win-x64", "native");
-            if (!Directory.Exists(runtimesPath))
-                continue;
+            foreach (string runtimesPath in EnumerateNativeRuntimePaths(probeDir))
+            {
+                if (!Directory.Exists(runtimesPath))
+                    continue;
 
-            if (pathEntries.Contains(runtimesPath, StringComparer.OrdinalIgnoreCase))
-                continue;
+                if (pathEntries.Contains(runtimesPath, PathComparer))
+                    continue;
 
-            Environment.SetEnvironmentVariable("PATH", runtimesPath + Path.PathSeparator + currentPath);
-            currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                Environment.SetEnvironmentVariable("PATH", runtimesPath + Path.PathSeparator + currentPath);
+                currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+                pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            }
         }
     }
 
@@ -146,8 +151,19 @@ public static class RuntimeBootstrap
         }
     }
 
-    [SupportedOSPlatform("windows")]
     private static string? DetectSteamResoniteDirectory()
+    {
+        if (OperatingSystem.IsWindows())
+            return DetectSteamResoniteDirectoryWindows();
+
+        if (OperatingSystem.IsLinux())
+            return DetectSteamResoniteDirectoryLinux();
+
+        return null;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static string? DetectSteamResoniteDirectoryWindows()
     {
         foreach (string? steamRoot in EnumerateSteamRoots())
         {
@@ -189,6 +205,32 @@ public static class RuntimeBootstrap
         }
     }
 
+    private static string? DetectSteamResoniteDirectoryLinux()
+    {
+        foreach (string? steamRoot in EnumerateLinuxSteamRoots())
+        {
+            if (string.IsNullOrWhiteSpace(steamRoot))
+                continue;
+
+            string candidate = Path.Combine(steamRoot, "steamapps", "common", "Resonite");
+            if (Directory.Exists(candidate))
+                return NormalizeDirectory(candidate);
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string?> EnumerateLinuxSteamRoots()
+    {
+        string? home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (string.IsNullOrWhiteSpace(home))
+            yield break;
+
+        yield return Path.Combine(home, ".local", "share", "Steam");
+        yield return Path.Combine(home, ".steam", "steam");
+        yield return Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam");
+    }
+
     private static string? ResolveBundledGameDirectory(string appDir)
     {
         string normalized = appDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
@@ -203,4 +245,39 @@ public static class RuntimeBootstrap
 
         return Path.GetFullPath(path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
     }
+
+    private static IEnumerable<string> EnumerateNativeRuntimePaths(string probeDir)
+    {
+        foreach (string rid in GetNativeRuntimeIdentifiers())
+            yield return Path.Combine(probeDir, "runtimes", rid, "native");
+    }
+
+    private static IEnumerable<string> GetNativeRuntimeIdentifiers()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            yield return "win-x64";
+            yield return "win";
+            yield break;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            yield return "linux-x64";
+            yield return "linux-musl-x64";
+            yield return "linux";
+            yield break;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            yield return "osx-x64";
+            yield return "osx-arm64";
+            yield return "osx";
+            yield break;
+        }
+    }
+
+    private static StringComparison GetPathComparison()
+        => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 }
