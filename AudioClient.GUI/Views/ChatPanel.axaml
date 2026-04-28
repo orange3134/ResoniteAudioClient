@@ -125,7 +125,8 @@
                              BorderThickness="0" CornerRadius="4" Padding="8,6"
                              FontSize="13"
                              Name="InputTextBox"
-                             KeyDown="InputTextBox_KeyDown" />
+                             KeyDown="InputTextBox_KeyDown"
+                             PastingFromClipboard="InputTextBox_PastingFromClipboard" />
                     <Button Grid.Column="1"
                             Content="送信"
                             Command="{Binding SendCommand}"
