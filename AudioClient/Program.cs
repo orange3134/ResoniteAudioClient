@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using AudioClient.Core;
 using AudioClient.Core.Services;
@@ -13,22 +14,26 @@ namespace AudioClient;
 public class Program
 {
     private static volatile bool _shutdownRequested = false;
+    private static readonly StringComparer PathComparer = OperatingSystem.IsWindows()
+        ? StringComparer.OrdinalIgnoreCase
+        : StringComparer.Ordinal;
 
     public static async Task Main(string[] args)
     {
         string appDir = AppDomain.CurrentDomain.BaseDirectory;
         string gameDir = ResolveGameDirectory(appDir);
+        Console.WriteLine($"Resolved Resonite directory: {gameDir}");
 
-        foreach (string runtimesPath in EnumerateNativeRuntimePaths(appDir, gameDir))
+        List<string> runtimePaths = EnumerateNativeRuntimePaths(appDir, gameDir).ToList();
+        foreach (string runtimesPath in runtimePaths)
         {
-            string currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            var pathEntries = currentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-            if (!pathEntries.Contains(runtimesPath, StringComparer.OrdinalIgnoreCase))
+            AddToSearchPath("PATH", runtimesPath);
+            if (!OperatingSystem.IsWindows())
             {
-                Environment.SetEnvironmentVariable("PATH", runtimesPath + Path.PathSeparator + currentPath);
-                currentPath = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+                AddToSearchPath("LD_LIBRARY_PATH", runtimesPath);
             }
         }
+        PreloadNativeLibraries(runtimePaths);
 
         AppDomain.CurrentDomain.AssemblyResolve += (sender, resolveArgs) =>
         {
@@ -60,20 +65,101 @@ public class Program
 
     private static string ResolveGameDirectory(string appDir)
     {
+        // Allow explicit override for troubleshooting and non-standard installs.
+        string? envPath = NormalizeDirectory(Environment.GetEnvironmentVariable("RESONITE_PATH"));
+        if (IsValidGameDirectory(envPath))
+        {
+            return envPath!;
+        }
+
         var normalized = appDir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         var dirName = Path.GetFileName(normalized);
         if (dirName.Equals("AudioClient", StringComparison.OrdinalIgnoreCase))
         {
-            return Directory.GetParent(normalized)?.FullName ?? normalized;
+            string parent = Directory.GetParent(normalized)?.FullName ?? normalized;
+            if (IsValidGameDirectory(parent))
+                return parent;
         }
 
+        string? current = normalized;
+        while (!string.IsNullOrWhiteSpace(current))
+        {
+            if (IsValidGameDirectory(current))
+                return current;
+
+            current = Directory.GetParent(current)?.FullName;
+        }
+
+        string? detected = DetectSteamResoniteDirectory();
+        if (IsValidGameDirectory(detected))
+            return detected!;
+
         return normalized;
+    }
+
+    private static bool IsValidGameDirectory(string? path)
+    {
+        string? normalized = NormalizeDirectory(path);
+        if (normalized is null)
+            return false;
+
+        return File.Exists(Path.Combine(normalized, "FrooxEngine.dll"))
+            && File.Exists(Path.Combine(normalized, "Elements.Core.dll"))
+            && File.Exists(Path.Combine(normalized, "SkyFrost.Base.dll"))
+            && Directory.Exists(Path.Combine(normalized, "Locale"));
+    }
+
+    private static string? DetectSteamResoniteDirectory()
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            string? home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!string.IsNullOrWhiteSpace(home))
+            {
+                string[] candidates =
+                [
+                    Path.Combine(home, ".local", "share", "Steam", "steamapps", "common", "Resonite"),
+                    Path.Combine(home, ".steam", "steam", "steamapps", "common", "Resonite"),
+                    Path.Combine(home, ".var", "app", "com.valvesoftware.Steam", ".local", "share", "Steam", "steamapps", "common", "Resonite")
+                ];
+
+                foreach (string candidate in candidates)
+                {
+                    if (Directory.Exists(candidate))
+                        return NormalizeDirectory(candidate);
+                }
+            }
+        }
+        else if (OperatingSystem.IsWindows())
+        {
+            string[] candidates =
+            [
+                @"C:\Program Files (x86)\Steam\steamapps\common\Resonite",
+                @"C:\Program Files\Steam\steamapps\common\Resonite"
+            ];
+
+            foreach (string candidate in candidates)
+            {
+                if (Directory.Exists(candidate))
+                    return NormalizeDirectory(candidate);
+            }
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeDirectory(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+
+        return Path.GetFullPath(path.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
     }
 
     private static IEnumerable<string> EnumerateProbeDirectories(string appDir, string gameDir)
     {
         yield return appDir;
-        if (!string.Equals(appDir, gameDir, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(appDir, gameDir, GetPathComparison()))
         {
             yield return gameDir;
         }
@@ -83,10 +169,79 @@ public class Program
     {
         foreach (string probeDir in EnumerateProbeDirectories(appDir, gameDir))
         {
-            string runtimesPath = Path.Combine(probeDir, "runtimes", "win-x64", "native");
-            if (Directory.Exists(runtimesPath))
+            foreach (string runtimesPath in EnumerateNativeRuntimePaths(probeDir))
             {
-                yield return runtimesPath;
+                if (Directory.Exists(runtimesPath))
+                {
+                    yield return runtimesPath;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateNativeRuntimePaths(string probeDir)
+    {
+        foreach (string rid in GetNativeRuntimeIdentifiers())
+            yield return Path.Combine(probeDir, "runtimes", rid, "native");
+    }
+
+    private static IEnumerable<string> GetNativeRuntimeIdentifiers()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            yield return "win-x64";
+            yield return "win";
+            yield break;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            yield return "linux-x64";
+            yield return "linux-musl-x64";
+            yield return "linux";
+            yield break;
+        }
+
+        if (OperatingSystem.IsMacOS())
+        {
+            yield return "osx-x64";
+            yield return "osx-arm64";
+            yield return "osx";
+            yield break;
+        }
+    }
+
+    private static StringComparison GetPathComparison()
+        => OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+    private static void AddToSearchPath(string variableName, string path)
+    {
+        string currentValue = Environment.GetEnvironmentVariable(variableName) ?? string.Empty;
+        string[] entries = currentValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+        if (entries.Contains(path, PathComparer))
+            return;
+
+        Environment.SetEnvironmentVariable(variableName, path + Path.PathSeparator + currentValue);
+    }
+
+    private static void PreloadNativeLibraries(IEnumerable<string> runtimePaths)
+    {
+        foreach (string runtimePath in runtimePaths)
+        {
+            if (!Directory.Exists(runtimePath))
+                continue;
+
+            foreach (string nativeFile in Directory.GetFiles(runtimePath))
+            {
+                if (!(nativeFile.EndsWith(".so", StringComparison.OrdinalIgnoreCase)
+                    || nativeFile.EndsWith(".dll", StringComparison.OrdinalIgnoreCase)
+                    || nativeFile.EndsWith(".dylib", StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                try { NativeLibrary.TryLoad(nativeFile, out _); }
+                catch { }
             }
         }
     }
