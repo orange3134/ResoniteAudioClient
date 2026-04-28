@@ -2,12 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Version>1.0.0</Version>
-    <Authors>orange</Authors>
     <TargetFramework>net10.0</TargetFramework>
-    <RepositoryUrl>https://github.com/orange3134/ResoniteAudioClient</RepositoryUrl>
     <PackageId>net.orange.audioclient</PackageId>
-    <Product>AudioClient</Product>
     <RootNamespace>AudioClient</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

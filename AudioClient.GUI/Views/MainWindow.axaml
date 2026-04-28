@@ -15,7 +15,7 @@
 
     <Grid>
 
-    <Grid RowDefinitions="Auto,*,Auto">
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
 
         <!-- Title bar -->
         <Border Grid.Row="0" Background="{StaticResource BrushBgDark}" Height="32"
@@ -41,7 +41,28 @@
         </Border>
 
         <!-- Main area: 4 columns — Chat is now below SessionDetail in column 2 -->
-        <Grid Grid.Row="1" ColumnDefinitions="200,200,*,200">
+        <!-- Update banner -->
+        <Border Grid.Row="1" IsVisible="{Binding IsUpdateAvailable}"
+                Background="{StaticResource BrushBgMid}"
+                BorderBrush="{StaticResource BrushYellow}"
+                BorderThickness="0,1,0,1"
+                Padding="12,8">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                <TextBlock Grid.Column="0" Text="{Binding UpdateStatusMessage}"
+                           Foreground="{StaticResource BrushTextPrimary}"
+                           VerticalAlignment="Center" FontSize="12"
+                           TextWrapping="Wrap" />
+                <Button Grid.Column="1" Content="{Binding UpdateButtonText}"
+                        Command="{Binding InstallUpdateCommand}"
+                        IsEnabled="{Binding !IsUpdating}"
+                        Background="{StaticResource BrushYellow}"
+                        Foreground="{StaticResource BrushBgDark}"
+                        Padding="12,4" FontSize="12" FontWeight="SemiBold"
+                        MinWidth="88" HorizontalContentAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2" ColumnDefinitions="200,200,*,200">
 
             <!-- Far Left: tabbed Browse / Contacts -->
             <Grid Grid.Column="0" RowDefinitions="Auto,*">
@@ -110,7 +131,7 @@
         </Grid>
 
         <!-- Bottom: Status Bar -->
-        <v:StatusBarPanel Grid.Row="2" DataContext="{Binding StatusBar}" />
+        <v:StatusBarPanel Grid.Row="3" DataContext="{Binding StatusBar}" />
 
     </Grid>
 

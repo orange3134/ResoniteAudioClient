@@ -47,3 +47,25 @@ this repository.
 `AudioClient.GUI` now includes a settings dialog from the status bar gear icon.
 You can toggle automatic switching to the AudioClient Avatar when joining a
 session, and the setting is saved in the GUI settings file.
+
+## GUI updates
+
+`AudioClient.GUI` checks the latest public release at
+`https://github.com/orange3134/ResoniteAudioClient` on startup. When a newer
+release is available, an update banner appears in the main window. Press
+`Update` to download the release ZIP, close the app, replace the installed files,
+and restart the GUI automatically.
+
+The updater expects the release ZIP to contain `AudioClient.GUI.exe` in the
+artifact root or in a single nested payload directory.
+
+## Release automation
+
+GitHub Actions builds release ZIP files when a tag like `v1.0.0` is pushed.
+The workflow publishes both GUI and CLI outputs into one
+`ResoniteAudioClient-<version>-win-x64.zip` asset and attaches it to the GitHub
+Release.
+
+Manual release builds can also be started from the `Release` workflow with a
+`MAJOR.MINOR.PATCH` version. Release artifacts must not include Resonite,
+FrooxEngine, SkyFrost, Elements, Renderite, Awwdio, or other game-provided DLLs.

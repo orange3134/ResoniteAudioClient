@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without v prefix, for example 1.0.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}"
+          } else {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Version must be in MAJOR.MINOR.PATCH format. Actual: $version"
+          }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Publish GUI
+        run: dotnet publish AudioClient.GUI/AudioClient.GUI.csproj --configuration Release --runtime win-x64 --self-contained false --output artifacts/AudioClient /p:VersionPrefix=${{ steps.version.outputs.version }} /p:CopyToGameFolder=false
+
+      - name: Publish CLI
+        run: dotnet publish AudioClient/AudioClient.csproj --configuration Release --runtime win-x64 --self-contained false --output artifacts/AudioClient /p:VersionPrefix=${{ steps.version.outputs.version }} /p:CopyToGameFolder=false
+
+      - name: Remove game-provided assemblies from artifact
+        shell: pwsh
+        run: |
+          $blocked = @(
+            "FrooxEngine*.dll",
+            "SkyFrost*.dll",
+            "Elements*.dll",
+            "Renderite*.dll",
+            "Awwdio.dll",
+            "PhotonDust.dll"
+          )
+
+          foreach ($pattern in $blocked) {
+            Get-ChildItem -Path artifacts/AudioClient -Filter $pattern -Recurse -File | Remove-Item -Force
+          }
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          $zip = "artifacts/ResoniteAudioClient-${{ steps.version.outputs.version }}-win-x64.zip"
+          if (Test-Path $zip) {
+            Remove-Item $zip -Force
+          }
+          Compress-Archive -Path artifacts/AudioClient/* -DestinationPath $zip -CompressionLevel Optimal
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: ResoniteAudioClient ${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: artifacts/ResoniteAudioClient-${{ steps.version.outputs.version }}-win-x64.zip

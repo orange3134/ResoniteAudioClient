@@ -14,6 +14,8 @@ public partial class MainViewModel : ObservableObject
 {
     private EngineHost? _host;
     private readonly GuiSettings _guiSettings;
+    private readonly UpdateService _updateService;
+    private UpdateCheckResult? _pendingUpdate;
 
     [ObservableProperty] private bool _isEngineReady = false;
     [ObservableProperty] private bool _isLoggedIn = false;
@@ -23,6 +25,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isBrowseTabSelected = true;
     [ObservableProperty] private bool _isContactsTabSelected = false;
     [ObservableProperty] private bool _isAudioClientWorld = false;
+    [ObservableProperty] private bool _isUpdateAvailable = false;
+    [ObservableProperty] private bool _isUpdating = false;
+    [ObservableProperty] private string _updateStatusMessage = "";
+    [ObservableProperty] private string _updateButtonText = "Update";
 
     public SessionListViewModel SessionList { get; }
     public SessionDetailViewModel SessionDetail { get; }
@@ -40,6 +46,7 @@ public partial class MainViewModel : ObservableObject
     public MainViewModel(string appDir, string engineDir, string[] args)
     {
         _guiSettings = GuiSettingsStore.Load();
+        _updateService = new UpdateService(appDir);
         SessionList = new SessionListViewModel();
         SessionDetail = new SessionDetailViewModel();
         MemberList = new MemberListViewModel();
@@ -65,6 +72,38 @@ public partial class MainViewModel : ObservableObject
         };
 
         Task.Run(() => InitializeEngineAsync(appDir, engineDir, args));
+        Task.Run(() => CheckForUpdatesAsync(showUpToDateStatus: false));
+    }
+
+    [RelayCommand]
+    private Task CheckForUpdates()
+        => CheckForUpdatesAsync(showUpToDateStatus: true);
+
+    [RelayCommand]
+    private async Task InstallUpdate()
+    {
+        if (_pendingUpdate is null || IsUpdating)
+            return;
+
+        try
+        {
+            IsUpdating = true;
+            UpdateButtonText = "Updating...";
+            UpdateStatusMessage = $"Downloading {FormatVersion(_pendingUpdate.LatestVersion)}...";
+
+            string scriptPath = await _updateService.DownloadAndPrepareAsync(_pendingUpdate);
+            UpdateStatusMessage = "Restarting to apply update...";
+            _updateService.StartUpdaterScript(scriptPath);
+
+            await ShutdownAsync();
+            Environment.Exit(0);
+        }
+        catch (Exception ex)
+        {
+            IsUpdating = false;
+            UpdateButtonText = "Retry";
+            UpdateStatusMessage = $"Update failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]
@@ -233,6 +272,39 @@ public partial class MainViewModel : ObservableObject
 
     private void UpdateStatus(string msg)
         => _ = Dispatcher.UIThread.InvokeAsync(() => StatusMessage = msg);
+
+    private async Task CheckForUpdatesAsync(bool showUpToDateStatus)
+    {
+        try
+        {
+            var result = await _updateService.CheckLatestAsync();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _pendingUpdate = result.IsAvailable ? result : null;
+                IsUpdateAvailable = result.IsAvailable || showUpToDateStatus;
+                UpdateButtonText = result.IsAvailable ? "Update" : "Check";
+                UpdateStatusMessage = result.IsAvailable
+                    ? $"Update available: {FormatVersion(result.CurrentVersion)} -> {FormatVersion(result.LatestVersion)}"
+                    : $"AudioClient is up to date ({FormatVersion(result.CurrentVersion)}).";
+            });
+        }
+        catch (Exception ex)
+        {
+            if (!showUpToDateStatus)
+                return;
+
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                _pendingUpdate = null;
+                IsUpdateAvailable = true;
+                UpdateButtonText = "Retry";
+                UpdateStatusMessage = $"Update check failed: {ex.Message}";
+            });
+        }
+    }
+
+    private static string FormatVersion(Version version)
+        => version.Build > 0 ? version.ToString(3) : version.ToString(2);
 
     public async Task ShutdownAsync()
     {
