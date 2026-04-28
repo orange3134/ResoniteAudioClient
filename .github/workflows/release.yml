@@ -43,6 +43,7 @@ jobs:
 
           "version=$version" >> $env:GITHUB_OUTPUT
           "tag=v$version" >> $env:GITHUB_OUTPUT
+          "zip_name=ResoniteAudioClient-$version-win-x64.zip" >> $env:GITHUB_OUTPUT
 
       - name: Publish GUI
         run: dotnet publish AudioClient.GUI/AudioClient.GUI.csproj --configuration Release --runtime win-x64 --self-contained false --output artifacts/AudioClient /p:VersionPrefix=${{ steps.version.outputs.version }} /p:CopyToGameFolder=false
@@ -69,11 +70,33 @@ jobs:
       - name: Create ZIP
         shell: pwsh
         run: |
-          $zip = "artifacts/ResoniteAudioClient-${{ steps.version.outputs.version }}-win-x64.zip"
+          $zip = "artifacts/${{ steps.version.outputs.zip_name }}"
           if (Test-Path $zip) {
             Remove-Item $zip -Force
           }
           Compress-Archive -Path artifacts/AudioClient/* -DestinationPath $zip -CompressionLevel Optimal
+
+      - name: Write release notes
+        shell: pwsh
+        run: |
+          $releaseNotes = @"
+          # Resonite AudioClient
+          Resoniteを通話アプリとして使いたい。
+          そう思ったこと、一度はありますよね？
+
+          ## インストール
+          1. [こちらのzipファイル](https://github.com/orange3134/ResoniteAudioClient/releases/latest/download/${{ steps.version.outputs.zip_name }})をダウンロードします。
+          2. ZIP ファイルを任意のフォルダに展開します。
+          3. ``AudioClient.GUI.exe`` を起動します。
+
+          ## アップデート
+          アップデートは手動でダウンロードする必要はありません。
+          新しいバージョンが公開されるとアプリ上部にアップデートボタンが現れます。
+          クリックすると自動で最新版をダウンロードして再起動します。
+
+          利用前に、Steam から Resonite をインストールしておく必要があります。
+          "@
+          Set-Content -Path release-notes.md -Value $releaseNotes -Encoding utf8
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -81,6 +104,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: ResoniteAudioClient ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
           draft: false
           prerelease: false
-          files: artifacts/ResoniteAudioClient-${{ steps.version.outputs.version }}-win-x64.zip
+          files: artifacts/${{ steps.version.outputs.zip_name }}
