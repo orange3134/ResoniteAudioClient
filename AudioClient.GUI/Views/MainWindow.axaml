@@ -93,10 +93,13 @@
                     <v:SessionDetailPanel DataContext="{Binding SessionDetail}" />
                 </Border>
 
-                <!-- Row 1: chat area -->
-                <Grid Grid.Row="1">
+                <!-- Row 1: video list + chat area -->
+                <Grid Grid.Row="1" RowDefinitions="Auto,*">
+                    <v:VideoListPanel Grid.Row="0" DataContext="{Binding Videos}" />
+
                     <!-- Loading overlay -->
                     <StackPanel IsVisible="{Binding !IsEngineReady}"
+                                Grid.RowSpan="2"
                                 HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
                         <TextBlock Text="Initializing..." Foreground="{StaticResource BrushTextPrimary}"
                                    FontSize="18" HorizontalAlignment="Center" />
@@ -105,7 +108,7 @@
                     </StackPanel>
 
                     <!-- Chat Panel — always visible; availability state handled inside the panel -->
-                    <v:ChatPanel DataContext="{Binding Chat}" />
+                    <v:ChatPanel Grid.Row="1" DataContext="{Binding Chat}" />
                 </Grid>
 
                 <!-- Overlays spanning both rows -->

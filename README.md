@@ -61,6 +61,26 @@ this repository.
 You can toggle automatic switching to the AudioClient Avatar when joining a
 session, and the setting is saved in the GUI settings file.
 
+## GUI video playback
+
+When the focused session contains `VideoTextureProvider` components,
+`AudioClient.GUI` shows a `VIDEOS` panel above chat. The panel lists detected
+videos by title or slot name and lets you play, pause, stop, seek to the start,
+scrub the playback position, and toggle looping.
+
+These controls operate on FrooxEngine's synced `VideoTextureProvider` playback
+state, so playback position and play/pause state are shared with the session in
+the same way as Resonite's in-world video players.
+
+Because the client runs FrooxEngine without a renderer, video length is resolved
+separately with Resonite's bundled `yt-dlp` when needed. This lets the GUI show
+playback time and seek even though FrooxEngine's renderer-backed `VideoTexture`
+pipeline is disabled.
+
+Video preview/audio output is handled by a GUI-side libVLC player using the
+`libvlc.dll` bundled with the Resonite renderer. FrooxEngine remains the source
+of synced play/pause/position state; libVLC is used only for local media output.
+
 ## GUI updates
 
 `AudioClient.GUI` checks the latest public release at

@@ -23,6 +23,7 @@ public class EngineHost : IDisposable
     public ContactService Contacts { get; }
     public InventoryService Inventory { get; }
     public ChatService Chat { get; }
+    public VideoService Videos { get; }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private EngineHost(Engine engine)
@@ -35,6 +36,7 @@ public class EngineHost : IDisposable
         Contacts = new ContactService(engine);
         Inventory = new InventoryService(engine);
         Chat = new ChatService(engine);
+        Videos = new VideoService(engine);
 
         _updateThread = new Thread(UpdateLoop) { Name = "Engine Update Loop", IsBackground = false };
         _updateThread.Start();
@@ -113,15 +115,24 @@ public class EngineHost : IDisposable
     private void PollCallback(object? state)
     {
         if (_shutdownRequested) return;
+        SafeRefresh("Auth", Auth.Refresh);
+        SafeRefresh("Audio", Audio.Refresh);
+        SafeRefresh("Sessions", Sessions.Refresh);
+        SafeRefresh("Users", Users.Refresh);
+        SafeRefresh("Contacts", Contacts.Refresh);
+        SafeRefresh("Chat", Chat.Refresh);
+        SafeRefresh("Videos", Videos.Refresh);
+    }
+
+    private static void SafeRefresh(string name, Action refresh)
+    {
         try
         {
-            Auth.Refresh();
-            Audio.Refresh();
-            Sessions.Refresh();
-            Users.Refresh();
-            Contacts.Refresh();
-            Chat.Refresh();
+            refresh();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Elements.Core.UniLog.Error($"[AudioClient] {name} refresh failed: {ex}");
+        }
     }
 }

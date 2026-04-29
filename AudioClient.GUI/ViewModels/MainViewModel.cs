@@ -45,6 +45,7 @@ public partial class MainViewModel : ObservableObject
     public SessionPreviewViewModel SessionPreview { get; }
     public UserInfoViewModel UserInfoPopup { get; }
     public ChatViewModel Chat { get; }
+    public VideoListViewModel Videos { get; }
     public NewSessionViewModel NewSession { get; }
     public SettingsViewModel Settings { get; }
     public ImageViewerViewModel ImageViewer { get; }
@@ -66,6 +67,7 @@ public partial class MainViewModel : ObservableObject
         SessionPreview = new SessionPreviewViewModel();
         UserInfoPopup = new UserInfoViewModel();
         Chat = new ChatViewModel();
+        Videos = new VideoListViewModel();
         ImageViewer = new ImageViewerViewModel();
         NewSession = new NewSessionViewModel();
         Settings = new SettingsViewModel
@@ -207,6 +209,8 @@ public partial class MainViewModel : ObservableObject
                 _ = Dispatcher.UIThread.InvokeAsync(() => Chat.AddPost(post));
             host.Chat.PostRemoved += (_, slotId) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => Chat.RemovePost(slotId));
+            host.Videos.VideoListChanged += (_, videos) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => Videos.Update(videos));
 
             // Session list actions
             SessionList.OnFocusRequested = info => host.PostToEngine(() => host.Sessions.FocusWorld(info));
@@ -279,6 +283,13 @@ public partial class MainViewModel : ObservableObject
                 host.Chat.SendPost(text, imageUri, host.Auth.CurrentUsername ?? "Unknown");
             };
 
+            // Videos
+            Videos.OnPlayRequested = id => host.PostToEngine(() => host.Videos.Play(id));
+            Videos.OnPauseRequested = id => host.PostToEngine(() => host.Videos.Pause(id));
+            Videos.OnStopRequested = id => host.PostToEngine(() => host.Videos.Stop(id));
+            Videos.OnSeekRequested = (id, seconds) => host.PostToEngine(() => host.Videos.SetPosition(id, seconds));
+            Videos.OnLoopChanged = (id, loop) => host.PostToEngine(() => host.Videos.SetLoop(id, loop));
+
             _ = Dispatcher.UIThread.InvokeAsync(() =>
             {
                 IsEngineReady = true;
@@ -299,6 +310,7 @@ public partial class MainViewModel : ObservableObject
                 if (vol != null) StatusBar.UpdateVolumes(vol);
                 var voiceMode = host.Users.GetVoiceMode();
                 if (voiceMode != null) StatusBar.CurrentVoiceMode = voiceMode;
+                Videos.Update(host.Videos.GetCurrentVideos());
             });
 
             // Auto-refresh Browse sessions on startup (cloud API call, run off UI thread)
