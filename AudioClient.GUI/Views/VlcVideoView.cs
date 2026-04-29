@@ -11,6 +11,10 @@ namespace AudioClient.GUI.Views;
 
 public class VlcVideoView : NativeControlHost
 {
+    public static Action<string>? DiagnosticLog;
+
+    internal static void Log(string message) => DiagnosticLog?.Invoke(message);
+
     public static readonly StyledProperty<string?> SourceProperty =
         AvaloniaProperty.Register<VlcVideoView, string?>(nameof(Source));
 
@@ -22,6 +26,9 @@ public class VlcVideoView : NativeControlHost
 
     public static readonly StyledProperty<double> VolumeProperty =
         AvaloniaProperty.Register<VlcVideoView, double>(nameof(Volume), 100);
+
+    public static readonly StyledProperty<bool> CanSeekProperty =
+        AvaloniaProperty.Register<VlcVideoView, bool>(nameof(CanSeek), true);
 
     public string? Source
     {
@@ -45,6 +52,12 @@ public class VlcVideoView : NativeControlHost
     {
         get => GetValue(VolumeProperty);
         set => SetValue(VolumeProperty, value);
+    }
+
+    public bool CanSeek
+    {
+        get => GetValue(CanSeekProperty);
+        set => SetValue(CanSeekProperty, value);
     }
 
     private IntPtr _hostHwnd;
@@ -93,10 +106,16 @@ public class VlcVideoView : NativeControlHost
     {
         base.OnPropertyChanged(change);
 
+        if (change.Property == SourceProperty)
+            Log($"[VLC] Source changed → {Source}");
+        else if (change.Property == IsPlaybackActiveProperty)
+            Log($"[VLC] IsPlaybackActive changed → {IsPlaybackActive}");
+
         if (change.Property == SourceProperty ||
             change.Property == IsPlaybackActiveProperty ||
             change.Property == PositionProperty ||
-            change.Property == VolumeProperty)
+            change.Property == VolumeProperty ||
+            change.Property == CanSeekProperty)
         {
             ApplyState();
         }
@@ -118,25 +137,35 @@ public class VlcVideoView : NativeControlHost
                 _player.Open(source);
         }
 
-        if (IsPlaybackActive)
+        var isLiveStream = !string.IsNullOrEmpty(_currentSource) && IsRtspUrl(_currentSource);
+        if (IsPlaybackActive || isLiveStream)
             _player.Play();
         else
             _player.Pause();
 
         _player.Volume = (int)Math.Round(Volume);
 
-        var now = DateTime.UtcNow;
-        if (now - _lastSeek > TimeSpan.FromMilliseconds(700))
+        if (CanSeek)
         {
-            var targetMs = Math.Max(0, (long)(Position * 1000));
-            var currentMs = _player.Time;
-            if (currentMs < 0 || Math.Abs(currentMs - targetMs) > 1200)
+            var now = DateTime.UtcNow;
+            if (now - _lastSeek > TimeSpan.FromMilliseconds(700))
             {
-                _player.Time = targetMs;
-                _lastSeek = now;
+                var targetMs = Math.Max(0, (long)(Position * 1000));
+                var currentMs = _player.Time;
+                if (currentMs < 0 || Math.Abs(currentMs - targetMs) > 1200)
+                {
+                    _player.Time = targetMs;
+                    _lastSeek = now;
+                }
             }
         }
     }
+
+    private static bool IsRtspUrl(string source)
+        => source.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase) ||
+           source.StartsWith("rtsps://", StringComparison.OrdinalIgnoreCase) ||
+           source.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
+           source.StartsWith("rtmps://", StringComparison.OrdinalIgnoreCase);
 
     private sealed class LibVlcPlayer : IDisposable
     {
@@ -153,7 +182,7 @@ public class VlcVideoView : NativeControlHost
                 "--quiet",
                 "--no-video-title-show",
                 "--no-osd",
-                "--avcodec-hw=any",
+                "--avcodec-hw=none",
             };
 
             _libvlc = VlcNative.libvlc_new(args.Length, args);
@@ -197,7 +226,19 @@ public class VlcVideoView : NativeControlHost
             if (media == IntPtr.Zero && File.Exists(source))
                 media = VlcNative.libvlc_media_new_path(_libvlc, source);
             if (media == IntPtr.Zero)
+            {
+                VlcVideoView.Log($"[VLC] media_new_location returned null for: {source} err={VlcNative.GetLastError()}");
                 return;
+            }
+
+            VlcVideoView.Log($"[VLC] Opening: {source} isRtsp={IsRtspUrl(source)}");
+
+            if (IsRtspUrl(source))
+            {
+                VlcNative.libvlc_media_add_option(media, ":network-caching=300");
+                VlcNative.libvlc_media_add_option(media, ":clock-jitter=0");
+                VlcNative.libvlc_media_add_option(media, ":clock-synchro=0");
+            }
 
             VlcNative.libvlc_media_player_set_media(_player, media);
             VlcNative.libvlc_media_release(media);
@@ -206,7 +247,14 @@ public class VlcVideoView : NativeControlHost
         public void Play()
         {
             if (!_disposed && _player != IntPtr.Zero)
-                VlcNative.libvlc_media_player_play(_player);
+            {
+                int ret = VlcNative.libvlc_media_player_play(_player);
+                if (ret != 0)
+                {
+                    var state = VlcNative.libvlc_media_player_get_state(_player);
+                    VlcVideoView.Log($"[VLC] Play() failed ret={ret} state={state} err={VlcNative.GetLastError()}");
+                }
+            }
         }
 
         public void Pause()
@@ -255,6 +303,10 @@ public class VlcVideoView : NativeControlHost
             var path = Environment.GetEnvironmentVariable("PATH") ?? "";
             if (!path.Contains(_vlcDirectory, StringComparison.OrdinalIgnoreCase))
                 Environment.SetEnvironmentVariable("PATH", _vlcDirectory + Path.PathSeparator + path);
+
+            var pluginsPath = Path.Combine(_vlcDirectory, "plugins");
+            if (Directory.Exists(pluginsPath))
+                Environment.SetEnvironmentVariable("VLC_PLUGIN_PATH", pluginsPath);
 
             NativeLibrary.SetDllImportResolver(typeof(VlcNative).Assembly, Resolve);
             _resolverRegistered = true;
@@ -306,6 +358,20 @@ public class VlcVideoView : NativeControlHost
             }
         }
 
+        public static string GetLastError()
+        {
+            var ptr = libvlc_errmsg();
+            return ptr == IntPtr.Zero ? "(no error)" : Marshal.PtrToStringAnsi(ptr) ?? "(null)";
+        }
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr libvlc_errmsg();
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void libvlc_media_add_option(
+            IntPtr media,
+            [MarshalAs(UnmanagedType.LPUTF8Str)] string options);
+
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr libvlc_new(
             int argc,
@@ -344,6 +410,9 @@ public class VlcVideoView : NativeControlHost
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern void libvlc_media_player_stop(IntPtr mediaPlayer);
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int libvlc_media_player_get_state(IntPtr mediaPlayer);
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern long libvlc_media_player_get_time(IntPtr mediaPlayer);

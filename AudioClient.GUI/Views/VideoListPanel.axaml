@@ -74,7 +74,8 @@
                                         <v:VlcVideoView Source="{Binding PlaybackUrl}"
                                                         IsPlaybackActive="{Binding IsPlaying}"
                                                         Position="{Binding Position}"
-                                                        Volume="{Binding Volume}" />
+                                                        Volume="{Binding Volume}"
+                                                        CanSeek="{Binding CanSeek}" />
                                     </Border>
 
                                     <Grid Grid.Row="2"

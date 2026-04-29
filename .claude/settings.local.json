@@ -5,7 +5,8 @@
       "Bash(dotnet build:*)",
       "Bash(ls -la c:\\\\\\\\Users\\\\\\\\star_\\\\\\\\AppData\\\\\\\\Roaming\\\\\\\\com.kesomannen.gale\\\\\\\\resonite\\\\\\\\profiles\\\\\\\\AudioClient)",
       "Bash(dotnet sln *)",
-      "Bash(grep -E \"\\\\.\\(cs|csproj|md\\)$\")"
+      "Bash(grep -E \"\\\\.\\(cs|csproj|md\\)$\")",
+      "PowerShell($items = Get-ChildItem \"C:\\\\Program Files \\(x86\\)\\\\Steam\\\\steamapps\\\\common\\\\Resonite\\\\Renderer\\\\Renderite.Renderer_Data\\\\Plugins\\\\x86_64\\\\plugins\"; foreach \\($i in $items\\) { Write-Host $i.Name })"
     ]
   }
 }

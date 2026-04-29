@@ -69,6 +69,7 @@ public partial class MainViewModel : ObservableObject
         Chat = new ChatViewModel();
         Videos = new VideoListViewModel();
         ImageViewer = new ImageViewerViewModel();
+        Views.VlcVideoView.DiagnosticLog = msg => Elements.Core.UniLog.Log(msg);
         NewSession = new NewSessionViewModel();
         Settings = new SettingsViewModel
         {

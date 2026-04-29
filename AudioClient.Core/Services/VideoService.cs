@@ -76,7 +76,9 @@ public class VideoService
             if (!VideoListsEqual(current, _lastVideos))
             {
                 _lastVideos = current;
-                Elements.Core.UniLog.Log($"[AudioClient] Video list changed: {current.Count} video(s). World: {world?.Name ?? "<none>"}");
+                var summary = string.Join(", ", current.Select(v =>
+                    $"{v.Title}[play={v.IsPlaying} len={v.ClipLength:F0} pos={v.Position:F1} url={v.PlaybackUrl}]"));
+                Elements.Core.UniLog.Log($"[AudioClient] Video list changed: {current.Count} video(s). World: {world?.Name ?? "<none>"}. Videos: {summary}");
                 VideoListChanged?.Invoke(this, current);
             }
 
@@ -226,10 +228,23 @@ public class VideoService
         return state;
     }
 
+    private static bool IsDirectStreamUrl(string url)
+        => url.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase) ||
+           url.StartsWith("rtsps://", StringComparison.OrdinalIgnoreCase) ||
+           url.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
+           url.StartsWith("rtmps://", StringComparison.OrdinalIgnoreCase);
+
     private async Task ResolveMetadataAsync(string url, VideoMetadataState state)
     {
         try
         {
+            if (IsDirectStreamUrl(url))
+            {
+                state.PlaybackUrl = url;
+                Elements.Core.UniLog.Log($"[AudioClient] Direct stream URL, skipping yt-dlp: {url}");
+                return;
+            }
+
             var executable = Path.Combine(_engine.AppPath, "RuntimeData", _engine.Platform == Platform.Windows ? "yt-dlp.exe" : "yt-dlp_linux");
             if (!File.Exists(executable))
             {
@@ -323,12 +338,14 @@ public class VideoService
 
     private static VideoDiagnostics GetVideoDiagnostics(World world)
     {
-        var rootProviderCount = world.RootSlot
+        var allProviders = world.RootSlot
             .GetComponentsInChildren<VideoTextureProvider>(includeLocal: true)
-            .Count(p => !p.IsRemoved);
+            .ToList();
+
+        var rootProviderCount = allProviders.Count(p => !p.IsRemoved);
 
         var videoTypes = new Dictionary<string, int>(StringComparer.Ordinal);
-        foreach (var provider in world.RootSlot.GetComponentsInChildren<VideoTextureProvider>(includeLocal: true))
+        foreach (var provider in allProviders)
             AddVideoType(videoTypes, provider.GetType().FullName ?? provider.GetType().Name);
 
         var summary = videoTypes.Count == 0
