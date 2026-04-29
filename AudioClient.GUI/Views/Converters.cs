@@ -134,3 +134,25 @@ public class VoiceModeBrushConverter : IValueConverter
     private static object? GetBrush(string key)
         => Application.Current?.Resources.TryGetResource(key, null, out var resource) == true ? resource : null;
 }
+
+public class OnlineStatusBrushConverter : IValueConverter
+{
+    public static readonly OnlineStatusBrushConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => (value as string) switch
+        {
+            "Sociable" => new SolidColorBrush(Color.Parse("#00b8d4")),
+            "Online" => GetBrush("BrushGreen"),
+            "Busy" => GetBrush("BrushRed"),
+            "Away" => GetBrush("BrushYellow"),
+            "Invisible" => GetBrush("BrushTextMuted"),
+            _ => GetBrush("BrushTextMuted")
+        };
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+
+    private static object? GetBrush(string key)
+        => Application.Current?.Resources.TryGetResource(key, null, out var resource) == true ? resource : null;
+}

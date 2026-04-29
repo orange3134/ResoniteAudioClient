@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AudioClient.Core;
 using AudioClient.GUI.Services;
+using SkyFrost.Base;
 
 namespace AudioClient.GUI.ViewModels;
 
@@ -162,6 +163,8 @@ public partial class MainViewModel : ObservableObject
 
             host.Auth.LoginStateChanged += (_, loggedIn) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() => OnLoginStateChanged(loggedIn));
+            host.Auth.OnlineStatusChanged += (_, status) =>
+                _ = Dispatcher.UIThread.InvokeAsync(() => StatusBar.CurrentOnlineStatus = status.ToString());
             host.Sessions.SessionListChanged += (_, sessions) =>
                 _ = Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -218,6 +221,11 @@ public partial class MainViewModel : ObservableObject
             StatusBar.OnSetVoiceVolume = v => host.PostToEngine(() => host.Audio.SetVoiceVolume(v));
             StatusBar.OnSetUIVolume = v => host.PostToEngine(() => host.Audio.SetUIVolume(v));
             StatusBar.OnSetVoiceMode = mode => host.PostToEngine(() => host.Users.SetVoiceMode(mode));
+            StatusBar.OnSetOnlineStatus = status =>
+            {
+                if (Enum.TryParse<OnlineStatus>(status, out var onlineStatus))
+                    host.PostToEngine(() => host.Auth.SetOnlineStatus(onlineStatus));
+            };
             StatusBar.OnShowLogin = () => _ = Dispatcher.UIThread.InvokeAsync(() =>
                 Login.ShowLogin(host.Auth.IsLoggedIn, host.Auth.CurrentUsername ?? ""));
             StatusBar.OnOpenSettings = () => _ = Dispatcher.UIThread.InvokeAsync(Settings.Show);
@@ -272,6 +280,7 @@ public partial class MainViewModel : ObservableObject
                 Login.IsLoggedIn = host.Auth.IsLoggedIn;
                 Login.LoggedInUsername = CurrentUsername;
                 Login.IsVisible = !host.Auth.IsLoggedIn;
+                UpdateStatusBarAccount(host.Auth.IsLoggedIn, CurrentUsername, host.Auth.CurrentOnlineStatus.ToString());
                 var currentSessions = host.Sessions.GetCurrentSessions();
                 SessionList.Update(currentSessions);
                 SessionDetail.Update(currentSessions.FirstOrDefault(s => s.IsFocused));
@@ -342,7 +351,15 @@ public partial class MainViewModel : ObservableObject
         CurrentUsername = _host?.Auth.CurrentUsername ?? "";
         Login.IsLoggedIn = loggedIn;
         Login.LoggedInUsername = CurrentUsername;
+        UpdateStatusBarAccount(loggedIn, CurrentUsername, _host?.Auth.CurrentOnlineStatus.ToString() ?? "Offline");
         if (loggedIn)
             Login.IsVisible = false;
+    }
+
+    private void UpdateStatusBarAccount(bool loggedIn, string username, string onlineStatus)
+    {
+        StatusBar.IsLoggedIn = loggedIn;
+        StatusBar.CurrentUsername = username;
+        StatusBar.CurrentOnlineStatus = loggedIn ? onlineStatus : "Offline";
     }
 }

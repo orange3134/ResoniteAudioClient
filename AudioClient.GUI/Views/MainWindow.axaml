@@ -21,19 +21,11 @@
         <Border Grid.Row="0" Background="{StaticResource BrushBgDark}" Height="32"
                 IsHitTestVisible="True"
                 PointerPressed="TitleBar_PointerPressed">
-            <Grid ColumnDefinitions="*,Auto,Auto">
+            <Grid ColumnDefinitions="*,Auto">
                 <TextBlock Grid.Column="0" Text="AudioClient" Foreground="{StaticResource BrushTextPrimary}"
                            VerticalAlignment="Center" Margin="12,0" FontWeight="SemiBold" IsHitTestVisible="False" />
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,8,0"
-                            IsHitTestVisible="False">
-                    <TextBlock Text="{Binding CurrentUsername}" Foreground="{StaticResource BrushTextMuted}"
-                               FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <Ellipse Width="8" Height="8" VerticalAlignment="Center"
-                             Fill="{Binding IsLoggedIn, Converter={x:Static v:BoolToBrushConverter.Instance},
-                                   ConverterParameter='Green:TextMuted'}" />
-                </StackPanel>
                 <!-- Close button -->
-                <Button Grid.Column="2" Content="✕" Click="CloseButton_Click"
+                <Button Grid.Column="1" Content="✕" Click="CloseButton_Click"
                         Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                         Width="32" Height="32" Padding="0" FontSize="14"
                         HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />

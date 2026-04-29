@@ -23,6 +23,10 @@ public partial class StatusBarViewModel : ObservableObject
     [ObservableProperty] private bool _isVolumePopupOpen = false;
     [ObservableProperty] private bool _isInputDevicePopupOpen = false;
     [ObservableProperty] private bool _isOutputDevicePopupOpen = false;
+    [ObservableProperty] private bool _isOnlineStatusPopupOpen = false;
+    [ObservableProperty] private bool _isLoggedIn = false;
+    [ObservableProperty] private string _currentUsername = "";
+    [ObservableProperty] private string _currentOnlineStatus = "Offline";
 
     private float _savedMasterVolume = 1f;
 
@@ -36,6 +40,7 @@ public partial class StatusBarViewModel : ObservableObject
     public Action<float>? OnSetVoiceVolume { get; set; }
     public Action<float>? OnSetUIVolume { get; set; }
     public Action<string>? OnSetVoiceMode { get; set; }
+    public Action<string>? OnSetOnlineStatus { get; set; }
     public Action? OnShowLogin { get; set; }
     public Action? OnOpenSettings { get; set; }
     public Func<List<DeviceInfo>>? OnGetInputDevices { get; set; }
@@ -106,6 +111,13 @@ public partial class StatusBarViewModel : ObservableObject
     private void OpenSettings() => OnOpenSettings?.Invoke();
 
     [RelayCommand]
+    private void ToggleOnlineStatusPopup()
+    {
+        if (IsLoggedIn)
+            IsOnlineStatusPopupOpen = !IsOnlineStatusPopupOpen;
+    }
+
+    [RelayCommand]
     private void ToggleVoiceModePopup() => IsVoiceModePopupOpen = !IsVoiceModePopupOpen;
 
     [RelayCommand]
@@ -157,6 +169,23 @@ public partial class StatusBarViewModel : ObservableObject
         OnSetVoiceMode?.Invoke(mode);
     }
 
+    [RelayCommand]
+    private void SetOnlineStatus(string status)
+    {
+        if (!IsLoggedIn)
+            return;
+
+        IsOnlineStatusPopupOpen = false;
+        CurrentOnlineStatus = status;
+        OnSetOnlineStatus?.Invoke(status);
+    }
+
+    public string SignInButtonText => IsLoggedIn ? "Sign Out" : "Sign In";
+    public string SignInToolTip => IsLoggedIn ? "Sign out of Resonite" : "Sign in to Resonite";
+    public string AccountText => IsLoggedIn && !string.IsNullOrWhiteSpace(CurrentUsername)
+        ? CurrentUsername
+        : "Signed out";
+
     public string VoiceModeLabel => CurrentVoiceMode switch
     {
         "Whisper" => "🟣",
@@ -168,4 +197,16 @@ public partial class StatusBarViewModel : ObservableObject
 
     partial void OnCurrentVoiceModeChanged(string value)
         => OnPropertyChanged(nameof(VoiceModeLabel));
+
+    partial void OnIsLoggedInChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SignInButtonText));
+        OnPropertyChanged(nameof(SignInToolTip));
+        OnPropertyChanged(nameof(AccountText));
+        if (!value)
+            IsOnlineStatusPopupOpen = false;
+    }
+
+    partial void OnCurrentUsernameChanged(string value)
+        => OnPropertyChanged(nameof(AccountText));
 }

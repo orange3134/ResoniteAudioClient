@@ -12,11 +12,78 @@
 
         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4"
                     HorizontalAlignment="Right" VerticalAlignment="Center">
-            <Button Content="Sign In"
+            <Button x:Name="OnlineStatusBtn"
+                    Command="{Binding ToggleOnlineStatusPopupCommand}"
+                    Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
+                    FontSize="12" Padding="8,4" VerticalAlignment="Center"
+                    ToolTip.Tip="{Binding CurrentOnlineStatus}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                             Fill="{Binding CurrentOnlineStatus, Converter={x:Static v:OnlineStatusBrushConverter.Instance}}" />
+                    <TextBlock Text="{Binding AccountText}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding CurrentOnlineStatus}" VerticalAlignment="Center"
+                               Foreground="{StaticResource BrushTextPrimary}" />
+                </StackPanel>
+            </Button>
+            <Popup IsOpen="{Binding IsOnlineStatusPopupOpen, Mode=TwoWay}"
+                   PlacementTarget="{Binding ElementName=OnlineStatusBtn}"
+                   Placement="Top" IsLightDismissEnabled="True">
+                <Border Background="{StaticResource BrushBgLight}" CornerRadius="6" Padding="6"
+                        BoxShadow="0 4 16 0 #88000000">
+                    <StackPanel Spacing="2" Width="150">
+                        <Button Command="{Binding SetOnlineStatusCommand}" CommandParameter="Sociable"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="#00b8d4" VerticalAlignment="Center" />
+                                <TextBlock Text="Sociable" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetOnlineStatusCommand}" CommandParameter="Online"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushGreen}" VerticalAlignment="Center" />
+                                <TextBlock Text="Online" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetOnlineStatusCommand}" CommandParameter="Busy"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushRed}" VerticalAlignment="Center" />
+                                <TextBlock Text="Busy" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetOnlineStatusCommand}" CommandParameter="Away"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushYellow}" VerticalAlignment="Center" />
+                                <TextBlock Text="Away" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding SetOnlineStatusCommand}" CommandParameter="Invisible"
+                                Background="Transparent" Foreground="{StaticResource BrushTextPrimary}"
+                                HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                                Padding="8,5">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Ellipse Width="10" Height="10" Fill="{StaticResource BrushTextMuted}" VerticalAlignment="Center" />
+                                <TextBlock Text="Invisible" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </Popup>
+            <Button Content="{Binding SignInButtonText}"
                     Command="{Binding ShowLoginCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                     FontSize="12" Padding="8,4" VerticalAlignment="Center"
-                    ToolTip.Tip="Sign in to Resonite" />
+                    ToolTip.Tip="{Binding SignInToolTip}" />
             <Button Command="{Binding OpenSettingsCommand}"
                     Background="Transparent" Foreground="{StaticResource BrushTextMuted}"
                     Padding="6" VerticalAlignment="Center"
