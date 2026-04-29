@@ -1,6 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Platform.Storage;
 using AudioClient.GUI.ViewModels;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AudioClient.GUI.Views;
 
@@ -11,6 +14,40 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        DataContextChanged += (_, _) => ConfigureViewModel();
+    }
+
+    private void ConfigureViewModel()
+    {
+        if (DataContext is MainViewModel vm)
+            vm.ImageViewer.OnSaveRequested = SaveImageAsync;
+    }
+
+    private async Task SaveImageAsync(ImageViewerViewModel viewer)
+    {
+        var bytes = viewer.ImageBytes;
+        if (bytes == null || bytes.Length == 0)
+            return;
+
+        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Save chat image",
+            SuggestedFileName = viewer.SuggestedFileName,
+            FileTypeChoices = new List<FilePickerFileType>
+            {
+                new("Image files")
+                {
+                    Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.webp", "*.gif", "*.bmp" }
+                },
+                FilePickerFileTypes.All
+            }
+        });
+
+        if (file == null)
+            return;
+
+        await using var stream = await file.OpenWriteAsync();
+        await stream.WriteAsync(bytes);
     }
 
     protected override async void OnClosing(WindowClosingEventArgs e)

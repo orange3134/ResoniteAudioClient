@@ -1,0 +1,88 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:AudioClient.GUI.ViewModels"
+             x:Class="AudioClient.GUI.Views.ImageOverlayView"
+             x:DataType="vm:ImageViewerViewModel"
+             IsVisible="{Binding IsVisible}">
+
+    <Grid x:Name="Viewport"
+          Background="#E6000000"
+          ClipToBounds="True"
+          PointerWheelChanged="Viewport_PointerWheelChanged">
+
+        <Image x:Name="PreviewImage"
+               Source="{Binding ImageBitmap}"
+               Stretch="Uniform"
+               MaxWidth="{Binding #Viewport.Bounds.Width}"
+               MaxHeight="{Binding #Viewport.Bounds.Height}"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"
+               PointerPressed="PreviewImage_PointerPressed"
+               PointerMoved="PreviewImage_PointerMoved"
+               PointerReleased="PreviewImage_PointerReleased" />
+
+        <StackPanel Orientation="Horizontal"
+                    Spacing="8"
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="12">
+            <Button Command="{Binding SaveCommand}"
+                    IsEnabled="{Binding CanSave}"
+                    Background="{StaticResource BrushAccent}"
+                    Foreground="White"
+                    Width="36"
+                    Height="36"
+                    Padding="8"
+                    CornerRadius="4"
+                    ToolTip.Tip="Save image">
+                <Viewbox Width="18" Height="18">
+                    <Canvas Width="24" Height="24">
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              Fill="Transparent"
+                              Data="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              Fill="Transparent"
+                              Data="M7 10l5 5 5-5" />
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              Fill="Transparent"
+                              Data="M12 15V3" />
+                    </Canvas>
+                </Viewbox>
+            </Button>
+            <Button Command="{Binding CloseCommand}"
+                    Background="{StaticResource BrushBgLight}"
+                    Foreground="{StaticResource BrushTextPrimary}"
+                    Width="36"
+                    Height="36"
+                    Padding="8"
+                    CornerRadius="4"
+                    ToolTip.Tip="Close">
+                <Viewbox Width="18" Height="18">
+                    <Canvas Width="24" Height="24">
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              Fill="Transparent"
+                              Data="M18 6L6 18" />
+                        <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                              StrokeThickness="2"
+                              StrokeLineCap="Round"
+                              StrokeJoin="Round"
+                              Fill="Transparent"
+                              Data="M6 6l12 12" />
+                    </Canvas>
+                </Viewbox>
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>

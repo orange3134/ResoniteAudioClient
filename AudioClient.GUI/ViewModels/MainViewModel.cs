@@ -47,6 +47,7 @@ public partial class MainViewModel : ObservableObject
     public ChatViewModel Chat { get; }
     public NewSessionViewModel NewSession { get; }
     public SettingsViewModel Settings { get; }
+    public ImageViewerViewModel ImageViewer { get; }
 
     public MainViewModel(string appDir, string engineDir, string[] args, bool skipEngineInitialization = false)
     {
@@ -65,6 +66,7 @@ public partial class MainViewModel : ObservableObject
         SessionPreview = new SessionPreviewViewModel();
         UserInfoPopup = new UserInfoViewModel();
         Chat = new ChatViewModel();
+        ImageViewer = new ImageViewerViewModel();
         NewSession = new NewSessionViewModel();
         Settings = new SettingsViewModel
         {
@@ -77,6 +79,12 @@ public partial class MainViewModel : ObservableObject
             GuiSettingsStore.Save(_guiSettings);
             if (_host != null)
                 _host.Sessions.AutoEquipAudioClientAvatarEnabled = enabled;
+        };
+
+        Chat.OnOpenImageRequested = image =>
+        {
+            if (image.ImageBitmap != null)
+                ImageViewer.Show(image.ImageBitmap, image.ImageBytes, image.ImageUrl);
         };
 
         Task.Run(() => CheckForUpdatesAsync(showUpToDateStatus: false));

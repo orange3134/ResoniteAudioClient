@@ -60,10 +60,14 @@
                                                   IsVisible="{Binding HasImageContent}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate x:DataType="vm:ChatContentItemViewModel">
-                                                <Border Background="{StaticResource BrushBgDark}" CornerRadius="6"
-                                                        ClipToBounds="True" Margin="0,4,0,0"
+                                                <Button Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="0"
+                                                        Command="{Binding OpenImageCommand}"
                                                         HorizontalAlignment="Left"
                                                         IsVisible="{Binding IsImage}">
+                                                    <Border Background="{StaticResource BrushBgDark}" CornerRadius="6"
+                                                            ClipToBounds="True" Margin="0,4,0,0">
                                                     <Grid>
                                                         <TextBlock Text="[Image]" Foreground="{StaticResource BrushTextMuted}"
                                                                    FontSize="12" FontStyle="Italic" Margin="8,4"
@@ -73,7 +77,8 @@
                                                                Stretch="Uniform"
                                                                IsVisible="{Binding ImageBitmap, Converter={x:Static ObjectConverters.IsNotNull}}" />
                                                     </Grid>
-                                                </Border>
+                                                    </Border>
+                                                </Button>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>

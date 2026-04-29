@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AudioClient.Core.Models;
 using AudioClient.GUI.Helpers;
 using Avalonia.Media.Imaging;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using static AudioClient.GUI.Helpers.ResoniteRichText;
@@ -25,6 +26,7 @@ public partial class ChatViewModel : ObservableObject
     public Func<string?, string?, Task>? OnSendRequested { get; set; }
     public Func<string, Task<string?>>? FetchIconUrl { get; set; }
     public Func<string, Task<byte[]?>>? FetchLocalImage { get; set; }
+    public Action<ChatContentItemViewModel>? OnOpenImageRequested { get; set; }
 
     public void SetAttachment(string filePath)
     {
@@ -76,7 +78,7 @@ public partial class ChatViewModel : ObservableObject
     {
         Posts.Clear();
         foreach (var post in posts)
-            Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage));
+            Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage, OnOpenImageRequested));
         ScrollToBottomRequested?.Invoke(this, EventArgs.Empty);
     }
 
@@ -84,7 +86,7 @@ public partial class ChatViewModel : ObservableObject
     {
         // Avoid duplicates (e.g. our own send already visible via ChildAdded)
         if (Posts.Any(p => p.SlotId == post.SlotId)) return;
-        Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage));
+        Posts.Add(new ChatPostItemViewModel(post, FetchIconUrl, FetchLocalImage, OnOpenImageRequested));
     }
 
     public void RemovePost(string slotId)
@@ -119,7 +121,8 @@ public partial class ChatPostItemViewModel : ObservableObject
     public ChatPostItemViewModel(
         ChatPostInfo post,
         Func<string, Task<string?>>? fetchIconUrl,
-        Func<string, Task<byte[]?>>? fetchLocalImage)
+        Func<string, Task<byte[]?>>? fetchLocalImage,
+        Action<ChatContentItemViewModel>? openImage)
     {
         SlotId = post.SlotId;
         Username = post.Username;
@@ -129,7 +132,7 @@ public partial class ChatPostItemViewModel : ObservableObject
         IconLetter = string.IsNullOrEmpty(plainUsername) ? "?" : plainUsername[0].ToString().ToUpperInvariant();
         TimeText = post.Time.ToLocalTime().ToString("HH:mm");
         IconUrl = post.IconUrl;
-        Contents = post.Contents.Select(c => new ChatContentItemViewModel(c, fetchLocalImage)).ToList();
+        Contents = post.Contents.Select(c => new ChatContentItemViewModel(c, fetchLocalImage, openImage)).ToList();
         _ = LoadIconAsync();
     }
 
@@ -151,15 +154,21 @@ public partial class ChatContentItemViewModel : ObservableObject
     public bool IsImage => Type == "Image";
 
     [ObservableProperty] private Bitmap? _imageBitmap;
+    [ObservableProperty] private byte[]? _imageBytes;
 
     private readonly Func<string, Task<byte[]?>>? _fetchLocalImage;
+    private readonly Action<ChatContentItemViewModel>? _openImage;
 
-    public ChatContentItemViewModel(ChatContent content, Func<string, Task<byte[]?>>? fetchLocalImage = null)
+    public ChatContentItemViewModel(
+        ChatContent content,
+        Func<string, Task<byte[]?>>? fetchLocalImage = null,
+        Action<ChatContentItemViewModel>? openImage = null)
     {
         Type = content.Type;
         Text = content.Text;
         ImageUrl = content.ImageUrl;
         _fetchLocalImage = fetchLocalImage;
+        _openImage = openImage;
         if (IsImage)
             _ = LoadImageAsync();
     }
@@ -169,17 +178,32 @@ public partial class ChatContentItemViewModel : ObservableObject
         var url = ImageUrl;
         if (url == null) return;
 
-        Bitmap? bitmap;
+        byte[]? bytes = null;
         if (url.StartsWith("local://", StringComparison.OrdinalIgnoreCase) && _fetchLocalImage != null)
         {
-            var bytes = await _fetchLocalImage(url).ConfigureAwait(false);
-            bitmap = bytes != null ? new Bitmap(new MemoryStream(bytes)) : null;
+            bytes = await _fetchLocalImage(url).ConfigureAwait(false);
+            ImageBytes = bytes;
+            ImageBitmap = bytes != null ? new Bitmap(new MemoryStream(bytes)) : null;
         }
         else
         {
-            bitmap = await IconLoader.LoadAsync(url).ConfigureAwait(false);
+            ImageBitmap = await IconLoader.LoadAsync(url).ConfigureAwait(false);
+            bytes = await IconLoader.LoadBytesAsync(url).ConfigureAwait(false);
+            ImageBytes = bytes;
         }
+    }
 
-        ImageBitmap = bitmap;
+    [RelayCommand(CanExecute = nameof(CanOpenImage))]
+    private void OpenImage()
+    {
+        if (ImageBitmap != null)
+            _openImage?.Invoke(this);
+    }
+
+    private bool CanOpenImage() => ImageBitmap != null;
+
+    partial void OnImageBitmapChanged(Bitmap? value)
+    {
+        Dispatcher.UIThread.Post(OpenImageCommand.NotifyCanExecuteChanged);
     }
 }
