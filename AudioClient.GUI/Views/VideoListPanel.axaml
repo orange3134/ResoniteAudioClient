@@ -8,7 +8,7 @@
              IsVisible="{Binding HasVideos}">
 
     <Border BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1">
-        <Grid RowDefinitions="Auto,Auto,*" MaxHeight="460">
+        <Grid RowDefinitions="Auto,Auto,*" MaxHeight="680">
             <Border Grid.Row="0" Padding="12,8" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1">
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Grid.Column="0" Text="VIDEOS"
@@ -21,54 +21,65 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Row="1"
-                    IsVisible="{Binding HasSelectedVideo}"
-                    Background="Black"
-                    BorderBrush="{StaticResource BrushBgDark}"
-                    BorderThickness="0,0,0,1"
-                    Height="220">
-                <v:VlcVideoView Source="{Binding SelectedVideo.PlaybackUrl}"
-                                IsPlaybackActive="{Binding SelectedVideo.IsPlaying}"
-                                Position="{Binding SelectedVideo.Position}" />
-            </Border>
-
-            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
-                <ItemsControl ItemsSource="{Binding Videos}" Margin="8,6">
+            <ScrollViewer Grid.Row="1"
+                          IsVisible="{Binding HasViewingVideos}"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          MaxHeight="430"
+                          BorderBrush="{StaticResource BrushBgDark}"
+                          BorderThickness="0,0,0,1">
+                <ItemsControl ItemsSource="{Binding ViewingVideos}" Margin="8,8,8,2">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoPlayerItemViewModel">
-                            <Border Background="{StaticResource BrushBgDark}"
-                                    BorderBrush="{StaticResource BrushBgHover}"
+                            <Border Width="380"
+                                    Background="{StaticResource BrushBgDark}"
+                                    BorderBrush="{StaticResource BrushAccent}"
                                     BorderThickness="1"
                                     CornerRadius="6"
                                     Padding="8"
-                                    Margin="0,0,0,6">
-                                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
-                                        <TextBlock Text="{Binding Title}"
-                                                   Foreground="{StaticResource BrushTextPrimary}"
-                                                   FontSize="13" FontWeight="SemiBold"
-                                                   TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Text="{Binding UrlDisplay}"
-                                                   Foreground="{StaticResource BrushTextMuted}"
-                                                   FontSize="11"
-                                                   TextTrimming="CharacterEllipsis" />
-                                    </StackPanel>
+                                    Margin="0,0,8,8">
+                                <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="7">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                        <StackPanel Grid.Column="0" Spacing="1">
+                                            <TextBlock Text="{Binding Title}"
+                                                       Foreground="{StaticResource BrushTextPrimary}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding PositionText}"
+                                                       Foreground="{StaticResource BrushTextMuted}"
+                                                       FontSize="11" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Content="X"
+                                                Command="{Binding CloseViewerCommand}"
+                                                Background="{StaticResource BrushBgLight}"
+                                                Foreground="{StaticResource BrushTextPrimary}"
+                                                Width="26"
+                                                Height="24"
+                                                Padding="0"
+                                                CornerRadius="4"
+                                                ToolTip.Tip="Close viewer" />
+                                    </Grid>
 
-                                    <Border Grid.Row="0" Grid.Column="1"
-                                            Background="{StaticResource BrushBgLight}"
-                                            CornerRadius="4"
-                                            Padding="6,2"
-                                            VerticalAlignment="Top"
-                                            Margin="8,0,0,0">
-                                        <TextBlock Text="{Binding StateText}"
-                                                   Foreground="{StaticResource BrushTextPrimary}"
-                                                   FontSize="10" />
+                                    <Border Grid.Row="1"
+                                            Background="Black"
+                                            Height="190"
+                                            ClipToBounds="True">
+                                        <v:VlcVideoView Source="{Binding PlaybackUrl}"
+                                                        IsPlaybackActive="{Binding IsPlaying}"
+                                                        Position="{Binding Position}"
+                                                        Volume="{Binding Volume}" />
                                     </Border>
 
-                                    <Grid Grid.Row="1" Grid.ColumnSpan="2"
+                                    <Grid Grid.Row="2"
                                           ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="8"
-                                          Margin="0,8,0,0">
+                                          ColumnSpacing="8">
                                         <Slider Grid.Column="0"
                                                 Minimum="0"
                                                 Maximum="{Binding SeekMaximum}"
@@ -83,46 +94,103 @@
                                                    VerticalAlignment="Center" />
                                     </Grid>
 
-                                    <Grid Grid.Row="2" Grid.ColumnSpan="2"
-                                          ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*"
-                                          ColumnSpacing="6"
-                                          Margin="0,6,0,0">
-                                        <Button Grid.Column="0" Content="Play"
+                                    <Grid Grid.Row="3"
+                                          ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto"
+                                          ColumnSpacing="6">
+                                        <Button Grid.Column="0"
+                                                Content="Play"
                                                 Command="{Binding PlayCommand}"
                                                 Background="{StaticResource BrushAccent}"
                                                 Foreground="White"
-                                                Padding="10,4" FontSize="12" CornerRadius="4" />
-                                        <Button Grid.Column="1" Content="Pause"
+                                                Padding="10,4"
+                                                FontSize="12"
+                                                CornerRadius="4" />
+                                        <Button Grid.Column="1"
+                                                Content="Pause"
                                                 Command="{Binding PauseCommand}"
                                                 Background="{StaticResource BrushBgLight}"
                                                 Foreground="{StaticResource BrushTextPrimary}"
-                                                Padding="10,4" FontSize="12" CornerRadius="4" />
-                                        <Button Grid.Column="2" Content="Stop"
+                                                Padding="10,4"
+                                                FontSize="12"
+                                                CornerRadius="4" />
+                                        <Button Grid.Column="2"
+                                                Content="Stop"
                                                 Command="{Binding StopCommand}"
                                                 Background="{StaticResource BrushBgLight}"
                                                 Foreground="{StaticResource BrushTextPrimary}"
-                                                Padding="10,4" FontSize="12" CornerRadius="4" />
-                                        <Button Grid.Column="3" Content="|&lt;"
+                                                Padding="10,4"
+                                                FontSize="12"
+                                                CornerRadius="4" />
+                                        <Button Grid.Column="3"
+                                                Content="|&lt;"
                                                 Command="{Binding SeekToStartCommand}"
                                                 IsEnabled="{Binding CanSeek}"
                                                 Background="{StaticResource BrushBgLight}"
                                                 Foreground="{StaticResource BrushTextPrimary}"
-                                                Padding="8,4" FontSize="12" CornerRadius="4"
+                                                Padding="8,4"
+                                                FontSize="12"
+                                                CornerRadius="4"
                                                 ToolTip.Tip="Seek to start" />
-                                        <Button Grid.Column="4" Content="View"
-                                                Command="{Binding SelectCommand}"
-                                                Background="{StaticResource BrushBgLight}"
-                                                Foreground="{StaticResource BrushTextPrimary}"
-                                                Padding="10,4" FontSize="12" CornerRadius="4" />
-                                        <CheckBox Grid.Column="5"
+                                        <CheckBox Grid.Column="4"
                                                   Content="Loop"
                                                   IsChecked="{Binding IsLooping, Mode=TwoWay}"
                                                   IsEnabled="{Binding CanSeek}"
                                                   Foreground="{StaticResource BrushTextMuted}"
                                                   FontSize="12"
-                                                  VerticalAlignment="Center"
-                                                  HorizontalAlignment="Right" />
+                                                  VerticalAlignment="Center" />
+                                        <Slider Grid.Column="5"
+                                                Minimum="0"
+                                                Maximum="150"
+                                                Value="{Binding Volume, Mode=TwoWay}"
+                                                VerticalAlignment="Center"
+                                                MinWidth="70"
+                                                ToolTip.Tip="Volume" />
+                                        <TextBlock Grid.Column="6"
+                                                   Text="{Binding Volume, StringFormat={}{0:0}%}"
+                                                   Foreground="{StaticResource BrushTextMuted}"
+                                                   FontSize="11"
+                                                   Width="38"
+                                                   TextAlignment="Right"
+                                                   VerticalAlignment="Center" />
                                     </Grid>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding Videos}" Margin="8,6">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:VideoPlayerItemViewModel">
+                            <Border Background="{StaticResource BrushBgDark}"
+                                    BorderBrush="{Binding IsViewing, Converter={x:Static v:BoolToBrushConverter.Instance}, ConverterParameter='Accent:Transparent'}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="8"
+                                    Margin="0,0,0,6">
+                                <Grid RowDefinitions="Auto" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Spacing="2">
+                                        <TextBlock Text="{Binding Title}"
+                                                   Foreground="{StaticResource BrushTextPrimary}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding UrlDisplay}"
+                                                   Foreground="{StaticResource BrushTextMuted}"
+                                                   FontSize="11"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+
+                                    <Button Grid.Row="0" Grid.Column="1"
+                                            Content="{Binding ViewButtonText}"
+                                            Command="{Binding ToggleViewerCommand}"
+                                            Background="{StaticResource BrushBgLight}"
+                                            Foreground="{StaticResource BrushTextPrimary}"
+                                            Padding="10,4"
+                                            FontSize="12"
+                                            CornerRadius="4"
+                                            VerticalAlignment="Center" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

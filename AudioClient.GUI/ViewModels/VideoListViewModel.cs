@@ -9,12 +9,11 @@ namespace AudioClient.GUI.ViewModels;
 
 public partial class VideoListViewModel : ObservableObject
 {
-    [ObservableProperty] private VideoPlayerItemViewModel? _selectedVideo;
-
     public ObservableCollection<VideoPlayerItemViewModel> Videos { get; } = new();
+    public ObservableCollection<VideoPlayerItemViewModel> ViewingVideos { get; } = new();
 
     public bool HasVideos => Videos.Count > 0;
-    public bool HasSelectedVideo => SelectedVideo != null;
+    public bool HasViewingVideos => ViewingVideos.Count > 0;
 
     public Action<string>? OnPlayRequested { get; set; }
     public Action<string>? OnPauseRequested { get; set; }
@@ -24,14 +23,17 @@ public partial class VideoListViewModel : ObservableObject
 
     public void Update(System.Collections.Generic.List<VideoPlayerInfo> videos)
     {
-        var selectedId = SelectedVideo?.Id;
         var hadVideos = HasVideos;
+        var hadViewingVideos = HasViewingVideos;
         var incomingIds = videos.Select(v => v.Id).ToHashSet();
 
         for (var i = Videos.Count - 1; i >= 0; i--)
         {
             if (!incomingIds.Contains(Videos[i].Id))
+            {
+                ViewingVideos.Remove(Videos[i]);
                 Videos.RemoveAt(i);
+            }
         }
 
         foreach (var video in videos)
@@ -43,53 +45,68 @@ public partial class VideoListViewModel : ObservableObject
                 existing.Update(video);
         }
 
-        SelectedVideo = Videos.FirstOrDefault(v => v.Id == selectedId) ?? Videos.FirstOrDefault();
         if (hadVideos != HasVideos)
             OnPropertyChanged(nameof(HasVideos));
-    }
-
-    [RelayCommand]
-    private void Select(VideoPlayerItemViewModel? item)
-    {
-        if (item == null) return;
-        SelectedVideo = item;
+        if (hadViewingVideos != HasViewingVideos)
+            OnPropertyChanged(nameof(HasViewingVideos));
     }
 
     internal void RequestPlay(VideoPlayerItemViewModel item)
     {
-        SelectedVideo = item;
+        OpenViewer(item);
         OnPlayRequested?.Invoke(item.Id);
     }
 
     internal void RequestPause(VideoPlayerItemViewModel item)
     {
-        SelectedVideo = item;
         OnPauseRequested?.Invoke(item.Id);
     }
 
     internal void RequestStop(VideoPlayerItemViewModel item)
     {
-        SelectedVideo = item;
         OnStopRequested?.Invoke(item.Id);
     }
 
     internal void RequestSeek(VideoPlayerItemViewModel item, float seconds)
     {
-        SelectedVideo = item;
         OnSeekRequested?.Invoke(item.Id, seconds);
     }
 
     internal void RequestLoop(VideoPlayerItemViewModel item, bool loop)
     {
-        SelectedVideo = item;
         OnLoopChanged?.Invoke(item.Id, loop);
     }
 
-    internal void RequestSelect(VideoPlayerItemViewModel item)
-        => SelectedVideo = item;
+    internal void ToggleViewer(VideoPlayerItemViewModel item)
+    {
+        if (item.IsViewing)
+            CloseViewer(item);
+        else
+            OpenViewer(item);
+    }
 
-    partial void OnSelectedVideoChanged(VideoPlayerItemViewModel? value)
-        => OnPropertyChanged(nameof(HasSelectedVideo));
+    internal void CloseViewer(VideoPlayerItemViewModel item)
+    {
+        var hadViewingVideos = HasViewingVideos;
+        if (!ViewingVideos.Remove(item))
+            return;
+
+        item.IsViewing = false;
+        if (hadViewingVideos != HasViewingVideos)
+            OnPropertyChanged(nameof(HasViewingVideos));
+    }
+
+    private void OpenViewer(VideoPlayerItemViewModel item)
+    {
+        if (item.IsViewing)
+            return;
+
+        var hadViewingVideos = HasViewingVideos;
+        item.IsViewing = true;
+        ViewingVideos.Add(item);
+        if (hadViewingVideos != HasViewingVideos)
+            OnPropertyChanged(nameof(HasViewingVideos));
+    }
 }
 
 public partial class VideoPlayerItemViewModel : ObservableObject
@@ -118,6 +135,10 @@ public partial class VideoPlayerItemViewModel : ObservableObject
 
     [ObservableProperty] private float _position;
     [ObservableProperty] private bool _isLooping;
+    [ObservableProperty] private bool _isViewing;
+    [ObservableProperty] private double _volume = 100;
+
+    public string ViewButtonText => IsViewing ? "Close" : "View";
 
     public VideoPlayerItemViewModel(VideoPlayerInfo info, VideoListViewModel owner)
     {
@@ -166,7 +187,10 @@ public partial class VideoPlayerItemViewModel : ObservableObject
     private void Play() => _owner.RequestPlay(this);
 
     [RelayCommand]
-    private void Select() => _owner.RequestSelect(this);
+    private void ToggleViewer() => _owner.ToggleViewer(this);
+
+    [RelayCommand]
+    private void CloseViewer() => _owner.CloseViewer(this);
 
     [RelayCommand]
     private void Pause() => _owner.RequestPause(this);
@@ -193,6 +217,9 @@ public partial class VideoPlayerItemViewModel : ObservableObject
         if (!_isUpdatingFromModel && CanSeek)
             _owner.RequestLoop(this, value);
     }
+
+    partial void OnIsViewingChanged(bool value)
+        => OnPropertyChanged(nameof(ViewButtonText));
 
     private static string FormatPosition(float position, double length)
     {

@@ -20,6 +20,9 @@ public class VlcVideoView : NativeControlHost
     public static readonly StyledProperty<float> PositionProperty =
         AvaloniaProperty.Register<VlcVideoView, float>(nameof(Position));
 
+    public static readonly StyledProperty<double> VolumeProperty =
+        AvaloniaProperty.Register<VlcVideoView, double>(nameof(Volume), 100);
+
     public string? Source
     {
         get => GetValue(SourceProperty);
@@ -36,6 +39,12 @@ public class VlcVideoView : NativeControlHost
     {
         get => GetValue(PositionProperty);
         set => SetValue(PositionProperty, value);
+    }
+
+    public double Volume
+    {
+        get => GetValue(VolumeProperty);
+        set => SetValue(VolumeProperty, value);
     }
 
     private IntPtr _hostHwnd;
@@ -86,7 +95,8 @@ public class VlcVideoView : NativeControlHost
 
         if (change.Property == SourceProperty ||
             change.Property == IsPlaybackActiveProperty ||
-            change.Property == PositionProperty)
+            change.Property == PositionProperty ||
+            change.Property == VolumeProperty)
         {
             ApplyState();
         }
@@ -112,6 +122,8 @@ public class VlcVideoView : NativeControlHost
             _player.Play();
         else
             _player.Pause();
+
+        _player.Volume = (int)Math.Round(Volume);
 
         var now = DateTime.UtcNow;
         if (now - _lastSeek > TimeSpan.FromMilliseconds(700))
@@ -162,6 +174,16 @@ public class VlcVideoView : NativeControlHost
             {
                 if (_player != IntPtr.Zero)
                     VlcNative.libvlc_media_player_set_time(_player, value);
+            }
+        }
+
+        public int Volume
+        {
+            get => _player == IntPtr.Zero ? 0 : VlcNative.libvlc_audio_get_volume(_player);
+            set
+            {
+                if (_player != IntPtr.Zero)
+                    VlcNative.libvlc_audio_set_volume(_player, Math.Clamp(value, 0, 150));
             }
         }
 
@@ -331,6 +353,12 @@ public class VlcVideoView : NativeControlHost
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern void libvlc_media_player_set_hwnd(IntPtr mediaPlayer, IntPtr hwnd);
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int libvlc_audio_get_volume(IntPtr mediaPlayer);
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int libvlc_audio_set_volume(IntPtr mediaPlayer, int volume);
     }
 
     private static class Win32

@@ -65,8 +65,13 @@ session, and the setting is saved in the GUI settings file.
 
 When the focused session contains `VideoTextureProvider` components,
 `AudioClient.GUI` shows a `VIDEOS` panel above chat. The panel lists detected
-videos by title or slot name and lets you play, pause, stop, seek to the start,
-scrub the playback position, and toggle looping.
+videos by title or slot name. Use `View` to open a local viewer for a video;
+opened videos are outlined in the list and the button changes to `Close`.
+
+Each viewer has its own close button, volume slider, play/pause/stop buttons,
+seekbar, seek-to-start button, and loop toggle. Multiple viewers can be open at
+the same time, and closing all viewers leaves the session video list available
+without locally watching any video.
 
 These controls operate on FrooxEngine's synced `VideoTextureProvider` playback
 state, so playback position and play/pause state are shared with the session in
