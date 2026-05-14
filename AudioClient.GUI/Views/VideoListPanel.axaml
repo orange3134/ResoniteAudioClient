@@ -8,7 +8,7 @@
              IsVisible="{Binding HasVideos}">
 
     <Border BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1">
-        <Grid RowDefinitions="Auto,Auto,*" MaxHeight="680">
+        <Grid RowDefinitions="Auto,Auto,Auto">
             <Border Grid.Row="0" Padding="12,8" BorderBrush="{StaticResource BrushBgDark}" BorderThickness="0,0,0,1">
                 <Grid ColumnDefinitions="*,Auto">
                     <TextBlock Grid.Column="0" Text="VIDEOS"
@@ -25,7 +25,7 @@
                           IsVisible="{Binding HasViewingVideos}"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
-                          MaxHeight="430"
+                          MaxHeight="260"
                           BorderBrush="{StaticResource BrushBgDark}"
                           BorderThickness="0,0,0,1">
                 <ItemsControl ItemsSource="{Binding ViewingVideos}" Margin="8,8,8,2">
@@ -44,7 +44,7 @@
                                     Padding="8"
                                     Margin="0,0,8,8">
                                 <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="7">
-                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
                                         <StackPanel Grid.Column="0" Spacing="1">
                                             <TextBlock Text="{Binding Title}"
                                                        Foreground="{StaticResource BrushTextPrimary}"
@@ -55,21 +55,59 @@
                                                        Foreground="{StaticResource BrushTextMuted}"
                                                        FontSize="11" />
                                         </StackPanel>
+                                        <!-- Expand button -->
                                         <Button Grid.Column="1"
-                                                Content="X"
+                                                Command="{Binding ExpandCommand}"
+                                                Background="{StaticResource BrushBgLight}"
+                                                Foreground="{StaticResource BrushTextPrimary}"
+                                                Width="26"
+                                                Height="24"
+                                                Padding="4"
+                                                CornerRadius="4"
+                                                ToolTip.Tip="全画面表示">
+                                            <Viewbox Width="14" Height="14">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                                          Data="M8 3H5a2 2 0 0 0-2 2v3" />
+                                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                                          Data="M21 8V5a2 2 0 0 0-2-2h-3" />
+                                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                                          Data="M3 16v3a2 2 0 0 0 2 2h3" />
+                                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                                          Data="M16 21h3a2 2 0 0 0 2-2v-3" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Button>
+                                        <!-- Close button -->
+                                        <Button Grid.Column="2"
                                                 Command="{Binding CloseViewerCommand}"
                                                 Background="{StaticResource BrushBgLight}"
                                                 Foreground="{StaticResource BrushTextPrimary}"
                                                 Width="26"
                                                 Height="24"
-                                                Padding="0"
+                                                Padding="4"
                                                 CornerRadius="4"
-                                                ToolTip.Tip="Close viewer" />
+                                                ToolTip.Tip="Close viewer">
+                                            <Viewbox Width="14" Height="14">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                                          Data="M18 6L6 18" />
+                                                    <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                                          StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                                          Data="M6 6l12 12" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </Button>
                                     </Grid>
 
                                     <Border Grid.Row="1"
                                             Background="Black"
-                                            Height="190"
+                                            Height="160"
                                             ClipToBounds="True">
                                         <v:VlcVideoView Source="{Binding PlaybackUrl}"
                                                         IsPlaybackActive="{Binding IsPlaying}"
@@ -161,7 +199,10 @@
                 </ItemsControl>
             </ScrollViewer>
 
-            <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+            <ScrollViewer Grid.Row="2"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto"
+                          MaxHeight="160" MinHeight="80">
                 <ItemsControl ItemsSource="{Binding Videos}" Margin="8,6">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoPlayerItemViewModel">

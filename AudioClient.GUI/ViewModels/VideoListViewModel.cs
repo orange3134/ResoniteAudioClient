@@ -15,6 +15,12 @@ public partial class VideoListViewModel : ObservableObject
     public bool HasVideos => Videos.Count > 0;
     public bool HasViewingVideos => ViewingVideos.Count > 0;
 
+    [ObservableProperty] private VideoPlayerItemViewModel? _expandedVideo;
+    public bool HasExpandedVideo => ExpandedVideo != null;
+
+    partial void OnExpandedVideoChanged(VideoPlayerItemViewModel? value)
+        => OnPropertyChanged(nameof(HasExpandedVideo));
+
     public Action<string>? OnPlayRequested { get; set; }
     public Action<string>? OnPauseRequested { get; set; }
     public Action<string>? OnStopRequested { get; set; }
@@ -92,9 +98,18 @@ public partial class VideoListViewModel : ObservableObject
             return;
 
         item.IsViewing = false;
+        if (ExpandedVideo == item)
+            CollapseExpandedVideo();
         if (hadViewingVideos != HasViewingVideos)
             OnPropertyChanged(nameof(HasViewingVideos));
     }
+
+    internal void ExpandViewer(VideoPlayerItemViewModel item)
+        => ExpandedVideo = item;
+
+    [RelayCommand]
+    private void CollapseExpandedVideo()
+        => ExpandedVideo = null;
 
     private void OpenViewer(VideoPlayerItemViewModel item)
     {
@@ -191,6 +206,9 @@ public partial class VideoPlayerItemViewModel : ObservableObject
 
     [RelayCommand]
     private void CloseViewer() => _owner.CloseViewer(this);
+
+    [RelayCommand]
+    private void Expand() => _owner.ExpandViewer(this);
 
     [RelayCommand]
     private void Pause() => _owner.RequestPause(this);

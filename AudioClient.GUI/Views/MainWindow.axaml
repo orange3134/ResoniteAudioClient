@@ -6,7 +6,7 @@
         x:DataType="vm:MainViewModel"
         Title="AudioClient"
         Icon="/AudioClientIcon.ico"
-        Width="1160" Height="600"
+        Width="1160" Height="900"
         MinWidth="800" MinHeight="400"
         Background="{StaticResource BrushBgDark}"
         ExtendClientAreaToDecorationsHint="True"
@@ -94,8 +94,8 @@
                 </Border>
 
                 <!-- Row 1: video list + chat area -->
-                <Grid Grid.Row="1" RowDefinitions="Auto,*">
-                    <v:VideoListPanel Grid.Row="0" DataContext="{Binding Videos}" />
+                <Grid Grid.Row="1" x:Name="CenterContentGrid" RowDefinitions="Auto,*">
+                    <v:VideoListPanel x:Name="VideoListPanelCtrl" Grid.Row="0" DataContext="{Binding Videos}" />
 
                     <!-- Loading overlay -->
                     <StackPanel IsVisible="{Binding !IsEngineReady}"
@@ -128,6 +128,134 @@
         <!-- Bottom: Status Bar -->
         <v:StatusBarPanel Grid.Row="3" DataContext="{Binding StatusBar}" />
 
+    </Grid>
+
+    <!-- Video full-screen overlay -->
+    <Grid IsVisible="{Binding Videos.HasExpandedVideo}" Background="#E6000000">
+        <Grid RowDefinitions="44,*">
+            <!-- Top bar: title + close -->
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="16,0,8,0" VerticalAlignment="Center">
+                <TextBlock Grid.Column="0"
+                           Text="{Binding Videos.ExpandedVideo.Title}"
+                           Foreground="{StaticResource BrushTextPrimary}"
+                           FontSize="14" FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" />
+                <Button Grid.Column="1"
+                        Command="{Binding Videos.CollapseExpandedVideoCommand}"
+                        Background="{StaticResource BrushBgLight}"
+                        Foreground="{StaticResource BrushTextPrimary}"
+                        Width="36" Height="36" Padding="8" CornerRadius="4"
+                        ToolTip.Tip="閉じる">
+                    <Viewbox Width="18" Height="18">
+                        <Canvas Width="24" Height="24">
+                            <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                  Data="M18 6L6 18" />
+                            <Path Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" Fill="Transparent"
+                                  Data="M6 6l12 12" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+            </Grid>
+            <!-- Full-screen video (IsFullScreenVideo bypasses airspace/overlay hide logic) -->
+            <Grid Grid.Row="1" DataContext="{Binding Videos.ExpandedVideo}" x:DataType="vm:VideoPlayerItemViewModel"
+                  RowDefinitions="*,Auto">
+                <v:VlcVideoView Grid.Row="0"
+                                IsFullScreenVideo="True"
+                                Source="{Binding PlaybackUrl}"
+                                IsPlaybackActive="{Binding IsPlaying}"
+                                Position="{Binding Position}"
+                                Volume="{Binding Volume}"
+                                CanSeek="{Binding CanSeek}" />
+
+                <Border Grid.Row="1"
+                        Background="#F0101520"
+                        BorderBrush="{StaticResource BrushBgLight}"
+                        BorderThickness="0,1,0,0"
+                        Padding="16,10">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="10">
+                        <Grid Grid.Row="0"
+                              ColumnDefinitions="*,Auto"
+                              ColumnSpacing="12">
+                            <Slider Grid.Column="0"
+                                    Minimum="0"
+                                    Maximum="{Binding SeekMaximum}"
+                                    Value="{Binding Position, Mode=TwoWay}"
+                                    IsEnabled="{Binding CanSeek}" />
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding PositionText}"
+                                       Foreground="{StaticResource BrushTextMuted}"
+                                       FontSize="12"
+                                       MinWidth="96"
+                                       TextAlignment="Right"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Grid Grid.Row="1"
+                              ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto"
+                              ColumnSpacing="8">
+                            <Button Grid.Column="0"
+                                    Content="Play"
+                                    Command="{Binding PlayCommand}"
+                                    Background="{StaticResource BrushAccent}"
+                                    Foreground="White"
+                                    Padding="12,6"
+                                    FontSize="13"
+                                    CornerRadius="4" />
+                            <Button Grid.Column="1"
+                                    Content="Pause"
+                                    Command="{Binding PauseCommand}"
+                                    Background="{StaticResource BrushBgLight}"
+                                    Foreground="{StaticResource BrushTextPrimary}"
+                                    Padding="12,6"
+                                    FontSize="13"
+                                    CornerRadius="4" />
+                            <Button Grid.Column="2"
+                                    Content="Stop"
+                                    Command="{Binding StopCommand}"
+                                    Background="{StaticResource BrushBgLight}"
+                                    Foreground="{StaticResource BrushTextPrimary}"
+                                    Padding="12,6"
+                                    FontSize="13"
+                                    CornerRadius="4" />
+                            <Button Grid.Column="3"
+                                    Content="|&lt;"
+                                    Command="{Binding SeekToStartCommand}"
+                                    IsEnabled="{Binding CanSeek}"
+                                    Background="{StaticResource BrushBgLight}"
+                                    Foreground="{StaticResource BrushTextPrimary}"
+                                    Padding="10,6"
+                                    FontSize="13"
+                                    CornerRadius="4"
+                                    ToolTip.Tip="Seek to start" />
+                            <CheckBox Grid.Column="4"
+                                      Content="Loop"
+                                      IsChecked="{Binding IsLooping, Mode=TwoWay}"
+                                      IsEnabled="{Binding CanSeek}"
+                                      Foreground="{StaticResource BrushTextMuted}"
+                                      FontSize="13"
+                                      VerticalAlignment="Center" />
+                            <Slider Grid.Column="5"
+                                    Minimum="0"
+                                    Maximum="150"
+                                    Value="{Binding Volume, Mode=TwoWay}"
+                                    VerticalAlignment="Center"
+                                    MinWidth="120"
+                                    ToolTip.Tip="Volume" />
+                            <TextBlock Grid.Column="6"
+                                       Text="{Binding Volume, StringFormat={}{0:0}%}"
+                                       Foreground="{StaticResource BrushTextMuted}"
+                                       FontSize="12"
+                                       Width="44"
+                                       TextAlignment="Right"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
     </Grid>
 
     <!-- Shutdown overlay -->

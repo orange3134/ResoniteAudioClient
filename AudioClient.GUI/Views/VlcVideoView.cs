@@ -1,10 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Platform;
 
 namespace AudioClient.GUI.Views;
@@ -58,6 +58,84 @@ public class VlcVideoView : NativeControlHost
     {
         get => GetValue(CanSeekProperty);
         set => SetValue(CanSeekProperty, value);
+    }
+
+    // --- Full-screen bypass flag ---
+    public static readonly StyledProperty<bool> IsFullScreenVideoProperty =
+        AvaloniaProperty.Register<VlcVideoView, bool>(nameof(IsFullScreenVideo));
+
+    public bool IsFullScreenVideo
+    {
+        get => GetValue(IsFullScreenVideoProperty);
+        set => SetValue(IsFullScreenVideoProperty, value);
+    }
+
+    // --- Static overlay state: hide all VLC windows when any overlay is open ---
+    private static bool _overlayActive;
+    private static event Action? OverlayStateChanged;
+
+    public static void SetOverlayActive(bool active)
+    {
+        if (_overlayActive == active) return;
+        _overlayActive = active;
+        OverlayStateChanged?.Invoke();
+    }
+
+    // --- Instance viewport state ---
+    private bool _viewportClipped;
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        SizeChanged += OnSizeChanged;
+        OverlayStateChanged += UpdateNativeVisibility;
+        EffectiveViewportChanged += OnEffectiveViewportChanged;
+        UpdateNativeVisibility();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        EffectiveViewportChanged -= OnEffectiveViewportChanged;
+        OverlayStateChanged -= UpdateNativeVisibility;
+        SizeChanged -= OnSizeChanged;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        ResizeNativeWindow();
+        UpdateNativeVisibility();
+    }
+
+    private void OnEffectiveViewportChanged(object? sender, EffectiveViewportChangedEventArgs e)
+    {
+        var bounds = new Rect(Bounds.Size);
+        var vp = e.EffectiveViewport;
+        var intersection = bounds.Intersect(vp);
+        _viewportClipped = intersection.Width < 1 || intersection.Height < 1;
+        UpdateNativeVisibility();
+    }
+
+    private void UpdateNativeVisibility()
+    {
+        var visible = IsFullScreenVideo || (!_viewportClipped && !_overlayActive);
+        IsVisible = visible;
+        if (_hostHwnd != IntPtr.Zero)
+        {
+            if (visible)
+                ResizeNativeWindow();
+            Win32.ShowWindow(_hostHwnd, visible ? Win32.SW_SHOW : Win32.SW_HIDE);
+        }
+    }
+
+    private void ResizeNativeWindow()
+    {
+        if (_hostHwnd == IntPtr.Zero)
+            return;
+
+        var width = Math.Max(1, (int)Math.Round(Bounds.Width));
+        var height = Math.Max(1, (int)Math.Round(Bounds.Height));
+        Win32.MoveWindow(_hostHwnd, 0, 0, width, height, true);
     }
 
     private IntPtr _hostHwnd;
@@ -436,6 +514,8 @@ public class VlcVideoView : NativeControlHost
         public const int WS_VISIBLE = 0x10000000;
         public const int WS_CLIPSIBLINGS = 0x04000000;
         public const int WS_CLIPCHILDREN = 0x02000000;
+        public const int SW_HIDE = 0;
+        public const int SW_SHOW = 5;
 
         [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr CreateWindowEx(
@@ -454,5 +534,17 @@ public class VlcVideoView : NativeControlHost
 
         [DllImport("user32.dll", SetLastError = true)]
         public static extern bool DestroyWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool InvalidateRect(IntPtr hWnd, IntPtr lpRect, bool bErase);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool UpdateWindow(IntPtr hWnd);
     }
 }
