@@ -2,18 +2,27 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Threading;
 
 namespace AudioClient.GUI.Views;
 
-public class VlcVideoView : NativeControlHost
+public class VlcVideoView : Control
 {
     public static Action<string>? DiagnosticLog;
 
     internal static void Log(string message) => DiagnosticLog?.Invoke(message);
+
+    public static void SetOverlayActive(bool active)
+    {
+        // Kept for the old HWND-backed implementation. The software-rendered view
+        // is a normal Avalonia control, so overlays and clipping are handled by Avalonia.
+    }
 
     public static readonly StyledProperty<string?> SourceProperty =
         AvaloniaProperty.Register<VlcVideoView, string?>(nameof(Source));
@@ -29,6 +38,9 @@ public class VlcVideoView : NativeControlHost
 
     public static readonly StyledProperty<bool> CanSeekProperty =
         AvaloniaProperty.Register<VlcVideoView, bool>(nameof(CanSeek), true);
+
+    public static readonly StyledProperty<bool> IsFullScreenVideoProperty =
+        AvaloniaProperty.Register<VlcVideoView, bool>(nameof(IsFullScreenVideo));
 
     public string? Source
     {
@@ -60,124 +72,35 @@ public class VlcVideoView : NativeControlHost
         set => SetValue(CanSeekProperty, value);
     }
 
-    // --- Full-screen bypass flag ---
-    public static readonly StyledProperty<bool> IsFullScreenVideoProperty =
-        AvaloniaProperty.Register<VlcVideoView, bool>(nameof(IsFullScreenVideo));
-
     public bool IsFullScreenVideo
     {
         get => GetValue(IsFullScreenVideoProperty);
         set => SetValue(IsFullScreenVideoProperty, value);
     }
 
-    // --- Static overlay state: hide all VLC windows when any overlay is open ---
-    private static bool _overlayActive;
-    private static event Action? OverlayStateChanged;
-
-    public static void SetOverlayActive(bool active)
-    {
-        if (_overlayActive == active) return;
-        _overlayActive = active;
-        OverlayStateChanged?.Invoke();
-    }
-
-    // --- Instance viewport state ---
-    private bool _viewportClipped;
+    private SoftwareVlcPlayer? _player;
+    private string? _currentSource;
+    private DateTime _lastSeek = DateTime.MinValue;
+    private WriteableBitmap? _bitmap;
+    private byte[]? _pendingFrame;
+    private int _frameWidth;
+    private int _frameHeight;
+    private bool _frameUpdateQueued;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        SizeChanged += OnSizeChanged;
-        OverlayStateChanged += UpdateNativeVisibility;
-        EffectiveViewportChanged += OnEffectiveViewportChanged;
-        UpdateNativeVisibility();
+        EnsurePlayer();
+        ApplyState();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        EffectiveViewportChanged -= OnEffectiveViewportChanged;
-        OverlayStateChanged -= UpdateNativeVisibility;
-        SizeChanged -= OnSizeChanged;
-        base.OnDetachedFromVisualTree(e);
-    }
-
-    private void OnSizeChanged(object? sender, SizeChangedEventArgs e)
-    {
-        ResizeNativeWindow();
-        UpdateNativeVisibility();
-    }
-
-    private void OnEffectiveViewportChanged(object? sender, EffectiveViewportChangedEventArgs e)
-    {
-        var bounds = new Rect(Bounds.Size);
-        var vp = e.EffectiveViewport;
-        var intersection = bounds.Intersect(vp);
-        _viewportClipped = intersection.Width < 1 || intersection.Height < 1;
-        UpdateNativeVisibility();
-    }
-
-    private void UpdateNativeVisibility()
-    {
-        var visible = IsFullScreenVideo || (!_viewportClipped && !_overlayActive);
-        IsVisible = visible;
-        if (_hostHwnd != IntPtr.Zero)
-        {
-            if (visible)
-                ResizeNativeWindow();
-            Win32.ShowWindow(_hostHwnd, visible ? Win32.SW_SHOW : Win32.SW_HIDE);
-        }
-    }
-
-    private void ResizeNativeWindow()
-    {
-        if (_hostHwnd == IntPtr.Zero)
-            return;
-
-        var width = Math.Max(1, (int)Math.Round(Bounds.Width));
-        var height = Math.Max(1, (int)Math.Round(Bounds.Height));
-        Win32.MoveWindow(_hostHwnd, 0, 0, width, height, true);
-    }
-
-    private IntPtr _hostHwnd;
-    private LibVlcPlayer? _player;
-    private string? _currentSource;
-    private DateTime _lastSeek = DateTime.MinValue;
-
-    protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
-    {
-        if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("VLC video output is currently implemented for Windows only.");
-
-        _hostHwnd = Win32.CreateWindowEx(
-            0,
-            "STATIC",
-            "",
-            Win32.WS_CHILD | Win32.WS_VISIBLE | Win32.WS_CLIPSIBLINGS | Win32.WS_CLIPCHILDREN,
-            0,
-            0,
-            1,
-            1,
-            parent.Handle,
-            IntPtr.Zero,
-            IntPtr.Zero,
-            IntPtr.Zero);
-
-        _player = new LibVlcPlayer(_hostHwnd);
-        ApplyState();
-
-        return new PlatformHandle(_hostHwnd, "HWND");
-    }
-
-    protected override void DestroyNativeControlCore(IPlatformHandle control)
-    {
         _player?.Dispose();
         _player = null;
-
-        if (_hostHwnd != IntPtr.Zero)
-        {
-            Win32.DestroyWindow(_hostHwnd);
-            _hostHwnd = IntPtr.Zero;
-        }
+        _bitmap?.Dispose();
+        _bitmap = null;
+        base.OnDetachedFromVisualTree(e);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -185,9 +108,9 @@ public class VlcVideoView : NativeControlHost
         base.OnPropertyChanged(change);
 
         if (change.Property == SourceProperty)
-            Log($"[VLC] Source changed → {Source}");
+            Log($"[VLC] Source changed -> {Source}");
         else if (change.Property == IsPlaybackActiveProperty)
-            Log($"[VLC] IsPlaybackActive changed → {IsPlaybackActive}");
+            Log($"[VLC] IsPlaybackActive changed -> {IsPlaybackActive}");
 
         if (change.Property == SourceProperty ||
             change.Property == IsPlaybackActiveProperty ||
@@ -199,8 +122,43 @@ public class VlcVideoView : NativeControlHost
         }
     }
 
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        var bounds = new Rect(Bounds.Size);
+        context.FillRectangle(Brushes.Black, bounds);
+
+        if (_bitmap == null || _frameWidth <= 0 || _frameHeight <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
+            return;
+
+        var source = new Rect(0, 0, _frameWidth, _frameHeight);
+        var dest = FitUniform(source.Size, bounds);
+        context.DrawImage(_bitmap, source, dest);
+    }
+
+    private static Rect FitUniform(Size source, Rect bounds)
+    {
+        var scale = Math.Min(bounds.Width / source.Width, bounds.Height / source.Height);
+        var width = source.Width * scale;
+        var height = source.Height * scale;
+        return new Rect(
+            bounds.X + (bounds.Width - width) / 2,
+            bounds.Y + (bounds.Height - height) / 2,
+            width,
+            height);
+    }
+
+    private void EnsurePlayer()
+    {
+        if (_player != null)
+            return;
+
+        _player = new SoftwareVlcPlayer(OnFrameReady);
+    }
+
     private void ApplyState()
     {
+        EnsurePlayer();
         if (_player == null)
             return;
 
@@ -239,20 +197,80 @@ public class VlcVideoView : NativeControlHost
         }
     }
 
+    private void OnFrameReady(byte[] frame, int width, int height)
+    {
+        _pendingFrame = frame;
+        _frameWidth = width;
+        _frameHeight = height;
+
+        if (_frameUpdateQueued)
+            return;
+
+        _frameUpdateQueued = true;
+        Dispatcher.UIThread.Post(UpdateFrameBitmap, DispatcherPriority.Render);
+    }
+
+    private void UpdateFrameBitmap()
+    {
+        _frameUpdateQueued = false;
+        var frame = _pendingFrame;
+        if (frame == null || _frameWidth <= 0 || _frameHeight <= 0)
+            return;
+
+        var size = new PixelSize(_frameWidth, _frameHeight);
+        if (_bitmap == null || _bitmap.PixelSize != size)
+        {
+            _bitmap?.Dispose();
+            _bitmap = new WriteableBitmap(size, new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
+        }
+
+        using (var locked = _bitmap.Lock())
+        {
+            var expectedStride = _frameWidth * 4;
+            if (locked.RowBytes == expectedStride)
+            {
+                Marshal.Copy(frame, 0, locked.Address, Math.Min(frame.Length, locked.RowBytes * _frameHeight));
+            }
+            else
+            {
+                for (var y = 0; y < _frameHeight; y++)
+                {
+                    var sourceOffset = y * expectedStride;
+                    var destination = IntPtr.Add(locked.Address, y * locked.RowBytes);
+                    Marshal.Copy(frame, sourceOffset, destination, Math.Min(expectedStride, locked.RowBytes));
+                }
+            }
+        }
+
+        InvalidateVisual();
+    }
+
     private static bool IsRtspUrl(string source)
         => source.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase) ||
            source.StartsWith("rtsps://", StringComparison.OrdinalIgnoreCase) ||
            source.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
            source.StartsWith("rtmps://", StringComparison.OrdinalIgnoreCase);
 
-    private sealed class LibVlcPlayer : IDisposable
+    private sealed class SoftwareVlcPlayer : IDisposable
     {
+        private readonly object _frameLock = new();
+        private readonly Action<byte[], int, int> _onFrameReady;
         private readonly IntPtr _libvlc;
         private readonly IntPtr _player;
+        private readonly VideoLockCallback _lockCallback;
+        private readonly VideoUnlockCallback _unlockCallback;
+        private readonly VideoDisplayCallback _displayCallback;
+        private readonly VideoFormatCallback _formatCallback;
+        private readonly VideoCleanupCallback _cleanupCallback;
+        private byte[]? _buffer;
+        private GCHandle _bufferHandle;
+        private int _width;
+        private int _height;
         private bool _disposed;
 
-        public LibVlcPlayer(IntPtr hwnd)
+        public SoftwareVlcPlayer(Action<byte[], int, int> onFrameReady)
         {
+            _onFrameReady = onFrameReady;
             VlcNative.EnsureLoaded();
 
             var args = new[]
@@ -271,7 +289,13 @@ public class VlcVideoView : NativeControlHost
             if (_player == IntPtr.Zero)
                 throw new InvalidOperationException("Failed to create libVLC media player.");
 
-            VlcNative.libvlc_media_player_set_hwnd(_player, hwnd);
+            _lockCallback = LockVideo;
+            _unlockCallback = UnlockVideo;
+            _displayCallback = DisplayVideo;
+            _formatCallback = SetupVideoFormat;
+            _cleanupCallback = CleanupVideoFormat;
+            VlcNative.libvlc_video_set_callbacks(_player, _lockCallback, _unlockCallback, _displayCallback, IntPtr.Zero);
+            VlcNative.libvlc_video_set_format_callbacks(_player, _formatCallback, _cleanupCallback);
         }
 
         public long Time
@@ -305,11 +329,11 @@ public class VlcVideoView : NativeControlHost
                 media = VlcNative.libvlc_media_new_path(_libvlc, source);
             if (media == IntPtr.Zero)
             {
-                VlcVideoView.Log($"[VLC] media_new_location returned null for: {source} err={VlcNative.GetLastError()}");
+                Log($"[VLC] media_new_location returned null for: {source} err={VlcNative.GetLastError()}");
                 return;
             }
 
-            VlcVideoView.Log($"[VLC] Opening: {source} isRtsp={IsRtspUrl(source)}");
+            Log($"[VLC] Opening: {source} isRtsp={IsRtspUrl(source)}");
 
             if (IsRtspUrl(source))
             {
@@ -330,7 +354,7 @@ public class VlcVideoView : NativeControlHost
                 if (ret != 0)
                 {
                     var state = VlcNative.libvlc_media_player_get_state(_player);
-                    VlcVideoView.Log($"[VLC] Play() failed ret={ret} state={state} err={VlcNative.GetLastError()}");
+                    Log($"[VLC] Play() failed ret={ret} state={state} err={VlcNative.GetLastError()}");
                 }
             }
         }
@@ -347,6 +371,75 @@ public class VlcVideoView : NativeControlHost
                 VlcNative.libvlc_media_player_stop(_player);
         }
 
+        private uint SetupVideoFormat(ref IntPtr opaque, IntPtr chroma, ref uint width, ref uint height, IntPtr pitches, IntPtr lines)
+        {
+            var rv32 = Encoding.ASCII.GetBytes("RV32");
+            Marshal.Copy(rv32, 0, chroma, rv32.Length);
+
+            _width = Math.Max(1, (int)width);
+            _height = Math.Max(1, (int)height);
+            var pitch = _width * 4;
+            var bytes = pitch * _height;
+
+            lock (_frameLock)
+            {
+                if (_bufferHandle.IsAllocated)
+                    _bufferHandle.Free();
+                _buffer = new byte[bytes];
+                _bufferHandle = GCHandle.Alloc(_buffer, GCHandleType.Pinned);
+            }
+
+            Marshal.WriteInt32(pitches, pitch);
+            Marshal.WriteInt32(lines, _height);
+            return 1;
+        }
+
+        private void CleanupVideoFormat(IntPtr opaque)
+        {
+            lock (_frameLock)
+            {
+                if (_bufferHandle.IsAllocated)
+                    _bufferHandle.Free();
+                _buffer = null;
+            }
+        }
+
+        private IntPtr LockVideo(IntPtr opaque, IntPtr planes)
+        {
+            lock (_frameLock)
+            {
+                if (_buffer == null || !_bufferHandle.IsAllocated)
+                    return IntPtr.Zero;
+
+                Marshal.WriteIntPtr(planes, _bufferHandle.AddrOfPinnedObject());
+            }
+
+            return IntPtr.Zero;
+        }
+
+        private void UnlockVideo(IntPtr opaque, IntPtr picture, IntPtr planes)
+        {
+            byte[]? copy;
+            int width;
+            int height;
+            lock (_frameLock)
+            {
+                if (_buffer == null || _width <= 0 || _height <= 0)
+                    return;
+
+                copy = new byte[_buffer.Length];
+                Buffer.BlockCopy(_buffer, 0, copy, 0, _buffer.Length);
+                width = _width;
+                height = _height;
+            }
+
+            _onFrameReady(copy, width, height);
+        }
+
+        private static void DisplayVideo(IntPtr opaque, IntPtr picture)
+        {
+        }
+
         public void Dispose()
         {
             if (_disposed)
@@ -361,8 +454,25 @@ public class VlcVideoView : NativeControlHost
 
             if (_libvlc != IntPtr.Zero)
                 VlcNative.libvlc_release(_libvlc);
+
+            CleanupVideoFormat(IntPtr.Zero);
         }
     }
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr VideoLockCallback(IntPtr opaque, IntPtr planes);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void VideoUnlockCallback(IntPtr opaque, IntPtr picture, IntPtr planes);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void VideoDisplayCallback(IntPtr opaque, IntPtr picture);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint VideoFormatCallback(ref IntPtr opaque, IntPtr chroma, ref uint width, ref uint height, IntPtr pitches, IntPtr lines);
+
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate void VideoCleanupCallback(IntPtr opaque);
 
     private static class VlcNative
     {
@@ -409,7 +519,7 @@ public class VlcVideoView : NativeControlHost
 
         private static string? FindVlcDirectory()
         {
-            var candidates = new List<string>();
+            var candidates = new System.Collections.Generic.List<string>();
             var appDir = AppContext.BaseDirectory;
             var parent = Directory.GetParent(appDir)?.FullName;
             var grandParent = parent == null ? null : Directory.GetParent(parent)?.FullName;
@@ -444,6 +554,20 @@ public class VlcVideoView : NativeControlHost
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr libvlc_errmsg();
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void libvlc_video_set_callbacks(
+            IntPtr mediaPlayer,
+            VideoLockCallback lockCallback,
+            VideoUnlockCallback unlockCallback,
+            VideoDisplayCallback displayCallback,
+            IntPtr opaque);
+
+        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void libvlc_video_set_format_callbacks(
+            IntPtr mediaPlayer,
+            VideoFormatCallback setupCallback,
+            VideoCleanupCallback cleanupCallback);
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern void libvlc_media_add_option(
@@ -499,52 +623,9 @@ public class VlcVideoView : NativeControlHost
         public static extern void libvlc_media_player_set_time(IntPtr mediaPlayer, long time);
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void libvlc_media_player_set_hwnd(IntPtr mediaPlayer, IntPtr hwnd);
-
-        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern int libvlc_audio_get_volume(IntPtr mediaPlayer);
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern int libvlc_audio_set_volume(IntPtr mediaPlayer, int volume);
-    }
-
-    private static class Win32
-    {
-        public const int WS_CHILD = 0x40000000;
-        public const int WS_VISIBLE = 0x10000000;
-        public const int WS_CLIPSIBLINGS = 0x04000000;
-        public const int WS_CLIPCHILDREN = 0x02000000;
-        public const int SW_HIDE = 0;
-        public const int SW_SHOW = 5;
-
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
-        public static extern IntPtr CreateWindowEx(
-            int dwExStyle,
-            string lpClassName,
-            string lpWindowName,
-            int dwStyle,
-            int x,
-            int y,
-            int nWidth,
-            int nHeight,
-            IntPtr hWndParent,
-            IntPtr hMenu,
-            IntPtr hInstance,
-            IntPtr lpParam);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool DestroyWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool InvalidateRect(IntPtr hWnd, IntPtr lpRect, bool bErase);
-
-        [DllImport("user32.dll", SetLastError = true)]
-        public static extern bool UpdateWindow(IntPtr hWnd);
     }
 }
