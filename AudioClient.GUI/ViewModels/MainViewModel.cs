@@ -285,7 +285,7 @@ public partial class MainViewModel : ObservableObject
             };
 
             // Videos
-            Videos.OnPlayRequested = id => host.PostToEngine(() => host.Videos.Play(id));
+            Videos.OnResumeRequested = id => host.PostToEngine(() => host.Videos.Resume(id));
             Videos.OnPauseRequested = id => host.PostToEngine(() => host.Videos.Pause(id));
             Videos.OnStopRequested = id => host.PostToEngine(() => host.Videos.Stop(id));
             Videos.OnSeekRequested = (id, seconds) => host.PostToEngine(() => host.Videos.SetPosition(id, seconds));

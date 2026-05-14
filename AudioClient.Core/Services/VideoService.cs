@@ -46,6 +46,9 @@ public class VideoService
     public void Play(string id) => ModifyPlayable(id, playable => playable.Play());
 
     [MethodImpl(MethodImplOptions.NoInlining)]
+    public void Resume(string id) => ModifyPlayable(id, playable => playable.Resume());
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void Pause(string id) => ModifyPlayable(id, playable => playable.Pause());
 
     [MethodImpl(MethodImplOptions.NoInlining)]

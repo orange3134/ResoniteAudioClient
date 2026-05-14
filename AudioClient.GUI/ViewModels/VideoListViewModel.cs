@@ -21,7 +21,7 @@ public partial class VideoListViewModel : ObservableObject
     partial void OnExpandedVideoChanged(VideoPlayerItemViewModel? value)
         => OnPropertyChanged(nameof(HasExpandedVideo));
 
-    public Action<string>? OnPlayRequested { get; set; }
+    public Action<string>? OnResumeRequested { get; set; }
     public Action<string>? OnPauseRequested { get; set; }
     public Action<string>? OnStopRequested { get; set; }
     public Action<string, float>? OnSeekRequested { get; set; }
@@ -57,10 +57,10 @@ public partial class VideoListViewModel : ObservableObject
             OnPropertyChanged(nameof(HasViewingVideos));
     }
 
-    internal void RequestPlay(VideoPlayerItemViewModel item)
+    internal void RequestResume(VideoPlayerItemViewModel item)
     {
         OpenViewer(item);
-        OnPlayRequested?.Invoke(item.Id);
+        OnResumeRequested?.Invoke(item.Id);
     }
 
     internal void RequestPause(VideoPlayerItemViewModel item)
@@ -144,6 +144,7 @@ public partial class VideoPlayerItemViewModel : ObservableObject
     public bool CanSeek => _clipLength > 0 && !double.IsInfinity(_clipLength) && !double.IsNaN(_clipLength);
     public double ClipLength => _clipLength;
     public string StateText => IsPlaying ? "Playing" : "Paused";
+    public string PlayPauseToolTip => IsPlaying ? "Pause" : "Play";
     public string PositionText => FormatPosition(Position, ClipLength);
     public double SeekMaximum => CanSeek ? ClipLength : 1;
     public string UrlDisplay => string.IsNullOrWhiteSpace(Url) ? "No URL" : Url;
@@ -179,7 +180,7 @@ public partial class VideoPlayerItemViewModel : ObservableObject
         SetIfChanged(ref _slotName, info.SlotName, nameof(SlotName));
         SetIfChanged(ref _url, info.Url, nameof(Url), nameof(UrlDisplay));
         SetIfChanged(ref _playbackUrl, info.PlaybackUrl, nameof(PlaybackUrl));
-        SetIfChanged(ref _isPlaying, info.IsPlaying, nameof(IsPlaying), nameof(StateText));
+        SetIfChanged(ref _isPlaying, info.IsPlaying, nameof(IsPlaying), nameof(StateText), nameof(PlayPauseToolTip));
 
         var canSeekBefore = CanSeek;
         if (Math.Abs(_clipLength - info.ClipLength) > 0.001)
@@ -199,7 +200,16 @@ public partial class VideoPlayerItemViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Play() => _owner.RequestPlay(this);
+    private void Resume() => _owner.RequestResume(this);
+
+    [RelayCommand]
+    private void TogglePlayPause()
+    {
+        if (IsPlaying)
+            _owner.RequestPause(this);
+        else
+            _owner.RequestResume(this);
+    }
 
     [RelayCommand]
     private void ToggleViewer() => _owner.ToggleViewer(this);
@@ -215,13 +225,6 @@ public partial class VideoPlayerItemViewModel : ObservableObject
 
     [RelayCommand]
     private void Stop() => _owner.RequestStop(this);
-
-    [RelayCommand]
-    private void SeekToStart()
-    {
-        if (CanSeek)
-            _owner.RequestSeek(this, 0);
-    }
 
     partial void OnPositionChanged(float value)
     {

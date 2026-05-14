@@ -195,57 +195,55 @@
                         </Grid>
 
                         <Grid Grid.Row="1"
-                              ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto"
+                              ColumnDefinitions="Auto,Auto,Auto,*,Auto"
                               ColumnSpacing="8">
                             <Button Grid.Column="0"
-                                    Content="Play"
-                                    Command="{Binding PlayCommand}"
+                                    Command="{Binding TogglePlayPauseCommand}"
                                     Background="{StaticResource BrushAccent}"
                                     Foreground="White"
-                                    Padding="12,6"
-                                    FontSize="13"
-                                    CornerRadius="4" />
+                                    Width="36" Height="34"
+                                    Padding="8"
+                                    CornerRadius="4"
+                                    ToolTip.Tip="{Binding PlayPauseToolTip}">
+                                <Grid Width="18" Height="18">
+                                    <Path IsVisible="{Binding !IsPlaying}"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Data="M6 4v16l12-8z"
+                                          Stretch="Uniform" />
+                                    <Grid IsVisible="{Binding IsPlaying}" ColumnDefinitions="*,*" ColumnSpacing="4">
+                                        <Rectangle Grid.Column="0"
+                                                   Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                        <Rectangle Grid.Column="1"
+                                                   Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                    </Grid>
+                                </Grid>
+                            </Button>
                             <Button Grid.Column="1"
-                                    Content="Pause"
-                                    Command="{Binding PauseCommand}"
-                                    Background="{StaticResource BrushBgLight}"
-                                    Foreground="{StaticResource BrushTextPrimary}"
-                                    Padding="12,6"
-                                    FontSize="13"
-                                    CornerRadius="4" />
-                            <Button Grid.Column="2"
-                                    Content="Stop"
                                     Command="{Binding StopCommand}"
                                     Background="{StaticResource BrushBgLight}"
                                     Foreground="{StaticResource BrushTextPrimary}"
-                                    Padding="12,6"
-                                    FontSize="13"
-                                    CornerRadius="4" />
-                            <Button Grid.Column="3"
-                                    Content="|&lt;"
-                                    Command="{Binding SeekToStartCommand}"
-                                    IsEnabled="{Binding CanSeek}"
-                                    Background="{StaticResource BrushBgLight}"
-                                    Foreground="{StaticResource BrushTextPrimary}"
-                                    Padding="10,6"
-                                    FontSize="13"
                                     CornerRadius="4"
-                                    ToolTip.Tip="Seek to start" />
-                            <CheckBox Grid.Column="4"
+                                    Width="36" Height="34"
+                                    Padding="8"
+                                    ToolTip.Tip="Stop">
+                                <Rectangle Width="16" Height="16"
+                                           Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            </Button>
+                            <CheckBox Grid.Column="2"
                                       Content="Loop"
                                       IsChecked="{Binding IsLooping, Mode=TwoWay}"
                                       IsEnabled="{Binding CanSeek}"
                                       Foreground="{StaticResource BrushTextMuted}"
                                       FontSize="13"
                                       VerticalAlignment="Center" />
-                            <Slider Grid.Column="5"
+                            <Slider Grid.Column="3"
                                     Minimum="0"
                                     Maximum="150"
                                     Value="{Binding Volume, Mode=TwoWay}"
                                     VerticalAlignment="Center"
                                     MinWidth="120"
                                     ToolTip.Tip="Volume" />
-                            <TextBlock Grid.Column="6"
+                            <TextBlock Grid.Column="4"
                                        Text="{Binding Volume, StringFormat={}{0:0}%}"
                                        Foreground="{StaticResource BrushTextMuted}"
                                        FontSize="12"
