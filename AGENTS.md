@@ -88,6 +88,8 @@ Linux対応を行う場合は `win-x64` 固定で探索せず、OSに応じたRI
 ### スレッド安全性
 `FrooxEngine` 内のノード（`world.LocalUser` やコンポーネント）のプロパティを変更する際は、必ず **`world.RunSynchronously(() => { ... })`** 内で行ってください。さもないと `Modifications from a non-locking thread are disallowed!` というエラーが発生します（例外: `engine.AudioSystem` のようなグローバルマネージャーはスレッドセーフな場合があります）。
 
+`world.RunSynchronously(...)` は外部スレッドから呼ぶと「その場で同期実行」ではなく、ワールド更新中に実行されるキューへ積まれます。ポーリング処理で値を即座に読みたい場合は、delegate 内でローカル変数へ代入して直後に読む形にしないでください（まだ実行されていないため default 値になります）。読み取りだけなら既存サービス同様に直接スナップショットを取るか、明示的に完了待ちの仕組みを用意します。
+
 ### DynamicVariable の同期タイミング
 リモートユーザーが作成・複製した Slot は、`ChildAdded` が発火した時点で子 Slot、コンポーネント、`DynamicVariableSpace` への登録、`DynamicValueVariable<T>.Value` の同期がすべて完了しているとは限りません。`DynamicVariableSpace.TryReadValue<T>()` は readable な変数が space に登録済みでないと `false` / default を返すため、受信直後に空値を UI に確定しないでください。実値が読めるまで数フレーム以上リトライするか、必要に応じて `DynamicValueVariable<T>` コンポーネントの `Value` を直接読むフォールバックを用意します。
 
@@ -96,6 +98,15 @@ Linux対応を行う場合は `win-x64` 固定で探索せず、OSに応じたRI
 DynamicVariable の読み取りは型完全一致です。`Content/Content` の画像 provider を読むときは `IAssetProvider<Texture2D>` で読む必要があります。
 
 チャットなどでユーザーアイコンを表示する場合、投稿 Slot 内にアイコン URL が入っているとは限りません。投稿者名から `world.AllUsers` の `UserID` を解決し、MemberList と同じ Cloud profile 取得 (`Contacts.GetUserIconUrlAsync`) で補完すると表示できるケースが多いです。
+
+### VideoTextureProvider の操作
+ワールド内動画は `VideoTextureProvider` が `IPlayable` として持つ `SyncPlayback` で再生状態を同期しています。`Play()` / `Pause()` / `Stop()` / `Position` / `Loop` を操作すれば、オリジナルの Resonite と同じ同期経路でセッション内に反映されます。
+
+`VideoTextureProvider` は通常のワールドコンポーネントなので、一覧取得や再生状態の変更は `world.RunSynchronously(() => { ... })` 内で行ってください。
+
+AudioClient は `engine.Initialize(..., useRenderer: false, ...)` で起動するため、`VideoTexture` は `RenderSystem.HasRenderer == false` になり、映像フレーム・音声キュー・動画尺 (`VideoTextureReady`) が生成されません。動画の実表示/音声出力は FrooxEngine の `VideoTexture` ではなく、GUI 側の別プレイヤー（Resonite 同梱の libVLC）で行い、FrooxEngine 側の `VideoTextureProvider` は同期済みの再生状態として扱います。動画尺が必要な場合は `yt-dlp` 等で URL メタデータを補完し、ローカル側の `SyncPlayback.ClipLength` に反映するとシーク可能になります。
+
+GUI の VLC 表示は `AudioClient.GUI/Views/VlcVideoView.cs` で Avalonia `NativeControlHost` の子 HWND を作り、`Renderer/Renderite.Renderer_Data/Plugins/x86_64/libvlc.dll` を P/Invoke しています。任意配置対応では、アプリ配置先から親の Resonite フォルダを辿れないケースがあるため、libVLC の探索候補を増やす必要があります。
 
 ### クラウド・セッション管理 (`engine.Cloud`)
 - **ログイン**: `engine.Cloud.Session.Login(username, new PasswordLogin(password), secretMachineId, rememberMe: true, totp: null)`

@@ -1,26 +1,67 @@
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using AudioClient.GUI.ViewModels;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace AudioClient.GUI.Views;
 
 public partial class MainWindow : Window
 {
     private bool _isShuttingDown = false;
+    private const double MinChatHeight = 150;
 
     public MainWindow()
     {
         InitializeComponent();
         DataContextChanged += (_, _) => ConfigureViewModel();
+        CenterContentGrid.SizeChanged += OnCenterContentGridSizeChanged;
+    }
+
+    private void OnCenterContentGridSizeChanged(object? sender, SizeChangedEventArgs e)
+    {
+        VideoListPanelCtrl.MaxHeight = System.Math.Max(80, e.NewSize.Height - MinChatHeight);
     }
 
     private void ConfigureViewModel()
     {
         if (DataContext is MainViewModel vm)
+        {
             vm.ImageViewer.OnSaveRequested = SaveImageAsync;
+            SubscribeToOverlayVisibility(vm);
+        }
+    }
+
+    private void SubscribeToOverlayVisibility(MainViewModel vm)
+    {
+        void Check()
+        {
+            var active = vm.Login.IsVisible
+                || vm.UserInfoPopup.IsVisible
+                || vm.SessionPreview.IsVisible
+                || vm.NewSession.IsVisible
+                || vm.Settings.IsVisible
+                || vm.ImageViewer.IsVisible
+                || vm.SessionDetail.IsSettingsOpen
+                || vm.Videos.HasExpandedVideo;
+            VlcVideoView.SetOverlayActive(active);
+        }
+
+        void Subscribe(INotifyPropertyChanged source, string prop)
+        {
+            source.PropertyChanged += (_, e) => { if (e.PropertyName == prop) Check(); };
+        }
+
+        Subscribe(vm.Login, nameof(LoginViewModel.IsVisible));
+        Subscribe(vm.UserInfoPopup, nameof(UserInfoViewModel.IsVisible));
+        Subscribe(vm.SessionPreview, nameof(SessionPreviewViewModel.IsVisible));
+        Subscribe(vm.NewSession, nameof(NewSessionViewModel.IsVisible));
+        Subscribe(vm.Settings, nameof(SettingsViewModel.IsVisible));
+        Subscribe(vm.ImageViewer, nameof(ImageViewerViewModel.IsVisible));
+        Subscribe(vm.SessionDetail, nameof(SessionDetailViewModel.IsSettingsOpen));
+        Subscribe(vm.Videos, nameof(VideoListViewModel.ExpandedVideo));
     }
 
     private async Task SaveImageAsync(ImageViewerViewModel viewer)
