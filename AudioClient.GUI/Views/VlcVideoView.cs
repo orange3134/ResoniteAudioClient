@@ -99,17 +99,22 @@ public class VlcVideoView : Control
     private int _frameWidth;
     private int _frameHeight;
     private bool _frameUpdateQueued;
+    private bool _isAttached;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        _isAttached = true;
         RegisterSharedPlayer();
         ApplyState();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        _isAttached = false;
         UnregisterSharedPlayer();
+        _pendingFrame = null;
+        _frameUpdateQueued = false;
         _bitmap?.Dispose();
         _bitmap = null;
         base.OnDetachedFromVisualTree(e);
@@ -166,6 +171,12 @@ public class VlcVideoView : Control
 
     private void RegisterSharedPlayer()
     {
+        if (!_isAttached)
+        {
+            UnregisterSharedPlayer();
+            return;
+        }
+
         var key = GetEffectivePlayerKey();
         if (string.IsNullOrWhiteSpace(key))
         {
@@ -217,10 +228,13 @@ public class VlcVideoView : Control
     }
 
     private string? GetEffectivePlayerKey()
-        => !string.IsNullOrWhiteSpace(PlayerKey) ? PlayerKey : Source;
+        => PlayerKey;
 
     private void ReceiveFrame(byte[] frame, int width, int height)
     {
+        if (!_isAttached)
+            return;
+
         OnFrameReady(frame, width, height);
     }
 
@@ -254,6 +268,9 @@ public class VlcVideoView : Control
 
     private void OnFrameReady(byte[] frame, int width, int height)
     {
+        if (!_isAttached)
+            return;
+
         _pendingFrame = frame;
         _frameWidth = width;
         _frameHeight = height;
@@ -268,6 +285,12 @@ public class VlcVideoView : Control
     private void UpdateFrameBitmap()
     {
         _frameUpdateQueued = false;
+        if (!_isAttached)
+        {
+            _pendingFrame = null;
+            return;
+        }
+
         var frame = _pendingFrame;
         if (frame == null || _frameWidth <= 0 || _frameHeight <= 0)
             return;
@@ -502,6 +525,9 @@ public class VlcVideoView : Control
 
         private uint SetupVideoFormat(ref IntPtr opaque, IntPtr chroma, ref uint width, ref uint height, IntPtr pitches, IntPtr lines)
         {
+            if (_disposed)
+                return 0;
+
             var rv32 = Encoding.ASCII.GetBytes("RV32");
             Marshal.Copy(rv32, 0, chroma, rv32.Length);
 
@@ -537,7 +563,7 @@ public class VlcVideoView : Control
         {
             lock (_frameLock)
             {
-                if (_buffer == null || !_bufferHandle.IsAllocated)
+                if (_disposed || _buffer == null || !_bufferHandle.IsAllocated)
                     return IntPtr.Zero;
 
                 Marshal.WriteIntPtr(planes, _bufferHandle.AddrOfPinnedObject());
@@ -553,7 +579,7 @@ public class VlcVideoView : Control
             int height;
             lock (_frameLock)
             {
-                if (_buffer == null || _width <= 0 || _height <= 0)
+                if (_disposed || _buffer == null || _width <= 0 || _height <= 0)
                     return;
 
                 copy = new byte[_buffer.Length];
@@ -562,7 +588,8 @@ public class VlcVideoView : Control
                 height = _height;
             }
 
-            _onFrameReady(copy, width, height);
+            if (!_disposed)
+                _onFrameReady(copy, width, height);
         }
 
         private static void DisplayVideo(IntPtr opaque, IntPtr picture)
@@ -578,6 +605,8 @@ public class VlcVideoView : Control
             if (_player != IntPtr.Zero)
             {
                 VlcNative.libvlc_media_player_stop(_player);
+                VlcNative.libvlc_video_set_callbacks_raw(_player, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                VlcNative.libvlc_video_set_format_callbacks_raw(_player, IntPtr.Zero, IntPtr.Zero);
                 VlcNative.libvlc_media_player_release(_player);
             }
 
@@ -692,11 +721,25 @@ public class VlcVideoView : Control
             VideoDisplayCallback displayCallback,
             IntPtr opaque);
 
-        [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libvlc", EntryPoint = "libvlc_video_set_callbacks", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void libvlc_video_set_callbacks_raw(
+            IntPtr mediaPlayer,
+            IntPtr lockCallback,
+            IntPtr unlockCallback,
+            IntPtr displayCallback,
+            IntPtr opaque);
+
+        [DllImport("libvlc", EntryPoint = "libvlc_video_set_format_callbacks", CallingConvention = CallingConvention.Cdecl)]
         public static extern void libvlc_video_set_format_callbacks(
             IntPtr mediaPlayer,
             VideoFormatCallback setupCallback,
             VideoCleanupCallback cleanupCallback);
+
+        [DllImport("libvlc", EntryPoint = "libvlc_video_set_format_callbacks", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void libvlc_video_set_format_callbacks_raw(
+            IntPtr mediaPlayer,
+            IntPtr setupCallback,
+            IntPtr cleanupCallback);
 
         [DllImport("libvlc", CallingConvention = CallingConvention.Cdecl)]
         public static extern void libvlc_media_add_option(
