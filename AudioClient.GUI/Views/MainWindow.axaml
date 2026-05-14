@@ -164,6 +164,7 @@
                   RowDefinitions="*,Auto">
                 <v:VlcVideoView Grid.Row="0"
                                 IsFullScreenVideo="True"
+                                PlayerKey="{Binding Id}"
                                 Source="{Binding PlaybackUrl}"
                                 IsPlaybackActive="{Binding IsPlaying}"
                                 Position="{Binding Position}"

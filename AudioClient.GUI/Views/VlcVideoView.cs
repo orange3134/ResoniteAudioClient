@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -27,6 +28,9 @@ public class VlcVideoView : Control
     public static readonly StyledProperty<string?> SourceProperty =
         AvaloniaProperty.Register<VlcVideoView, string?>(nameof(Source));
 
+    public static readonly StyledProperty<string?> PlayerKeyProperty =
+        AvaloniaProperty.Register<VlcVideoView, string?>(nameof(PlayerKey));
+
     public static readonly StyledProperty<bool> IsPlaybackActiveProperty =
         AvaloniaProperty.Register<VlcVideoView, bool>(nameof(IsPlaybackActive));
 
@@ -46,6 +50,12 @@ public class VlcVideoView : Control
     {
         get => GetValue(SourceProperty);
         set => SetValue(SourceProperty, value);
+    }
+
+    public string? PlayerKey
+    {
+        get => GetValue(PlayerKeyProperty);
+        set => SetValue(PlayerKeyProperty, value);
     }
 
     public bool IsPlaybackActive
@@ -78,8 +88,11 @@ public class VlcVideoView : Control
         set => SetValue(IsFullScreenVideoProperty, value);
     }
 
-    private SoftwareVlcPlayer? _player;
-    private string? _currentSource;
+    private static readonly object SharedPlayersLock = new();
+    private static readonly Dictionary<string, SharedVideoPlayer> SharedPlayers = new(StringComparer.Ordinal);
+
+    private SharedVideoPlayer? _sharedPlayer;
+    private string? _registeredKey;
     private DateTime _lastSeek = DateTime.MinValue;
     private WriteableBitmap? _bitmap;
     private byte[]? _pendingFrame;
@@ -90,14 +103,13 @@ public class VlcVideoView : Control
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        EnsurePlayer();
+        RegisterSharedPlayer();
         ApplyState();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        _player?.Dispose();
-        _player = null;
+        UnregisterSharedPlayer();
         _bitmap?.Dispose();
         _bitmap = null;
         base.OnDetachedFromVisualTree(e);
@@ -112,7 +124,11 @@ public class VlcVideoView : Control
         else if (change.Property == IsPlaybackActiveProperty)
             Log($"[VLC] IsPlaybackActive changed -> {IsPlaybackActive}");
 
+        if (change.Property == PlayerKeyProperty)
+            RegisterSharedPlayer();
+
         if (change.Property == SourceProperty ||
+            change.Property == PlayerKeyProperty ||
             change.Property == IsPlaybackActiveProperty ||
             change.Property == PositionProperty ||
             change.Property == VolumeProperty ||
@@ -148,38 +164,77 @@ public class VlcVideoView : Control
             height);
     }
 
-    private void EnsurePlayer()
+    private void RegisterSharedPlayer()
     {
-        if (_player != null)
+        var key = GetEffectivePlayerKey();
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            UnregisterSharedPlayer();
+            return;
+        }
+
+        lock (SharedPlayersLock)
+        {
+            if (string.Equals(_registeredKey, key, StringComparison.Ordinal) && _sharedPlayer != null)
+                return;
+
+            UnregisterSharedPlayerCore();
+
+            if (!SharedPlayers.TryGetValue(key, out var sharedPlayer))
+            {
+                sharedPlayer = new SharedVideoPlayer(key);
+                SharedPlayers.Add(key, sharedPlayer);
+            }
+
+            _registeredKey = key;
+            _sharedPlayer = sharedPlayer;
+            sharedPlayer.Attach(this);
+        }
+    }
+
+    private void UnregisterSharedPlayer()
+    {
+        lock (SharedPlayersLock)
+        {
+            UnregisterSharedPlayerCore();
+        }
+    }
+
+    private void UnregisterSharedPlayerCore()
+    {
+        if (_sharedPlayer == null || _registeredKey == null)
             return;
 
-        _player = new SoftwareVlcPlayer(OnFrameReady);
+        _sharedPlayer.Detach(this);
+        if (_sharedPlayer.IsUnused)
+        {
+            SharedPlayers.Remove(_registeredKey);
+            _sharedPlayer.Dispose();
+        }
+
+        _sharedPlayer = null;
+        _registeredKey = null;
+    }
+
+    private string? GetEffectivePlayerKey()
+        => !string.IsNullOrWhiteSpace(PlayerKey) ? PlayerKey : Source;
+
+    private void ReceiveFrame(byte[] frame, int width, int height)
+    {
+        OnFrameReady(frame, width, height);
     }
 
     private void ApplyState()
     {
-        EnsurePlayer();
-        if (_player == null)
+        RegisterSharedPlayer();
+        if (_sharedPlayer == null)
             return;
 
         var source = Source;
-        if (!string.Equals(source, _currentSource, StringComparison.Ordinal))
-        {
-            _currentSource = source;
-            _lastSeek = DateTime.MinValue;
-            if (string.IsNullOrWhiteSpace(source))
-                _player.Stop();
-            else
-                _player.Open(source);
-        }
+        if (string.IsNullOrWhiteSpace(source))
+            return;
 
-        var isLiveStream = !string.IsNullOrEmpty(_currentSource) && IsRtspUrl(_currentSource);
-        if (IsPlaybackActive || isLiveStream)
-            _player.Play();
-        else
-            _player.Pause();
-
-        _player.Volume = (int)Math.Round(Volume);
+        _sharedPlayer.Apply(source, IsPlaybackActive, Volume);
 
         if (CanSeek)
         {
@@ -187,10 +242,10 @@ public class VlcVideoView : Control
             if (now - _lastSeek > TimeSpan.FromMilliseconds(700))
             {
                 var targetMs = Math.Max(0, (long)(Position * 1000));
-                var currentMs = _player.Time;
+                var currentMs = _sharedPlayer.Time;
                 if (currentMs < 0 || Math.Abs(currentMs - targetMs) > 1200)
                 {
-                    _player.Time = targetMs;
+                    _sharedPlayer.Time = targetMs;
                     _lastSeek = now;
                 }
             }
@@ -250,6 +305,80 @@ public class VlcVideoView : Control
            source.StartsWith("rtsps://", StringComparison.OrdinalIgnoreCase) ||
            source.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
            source.StartsWith("rtmps://", StringComparison.OrdinalIgnoreCase);
+
+    private sealed class SharedVideoPlayer : IDisposable
+    {
+        private readonly string _key;
+        private readonly List<VlcVideoView> _views = new();
+        private readonly SoftwareVlcPlayer _player;
+        private string? _currentSource;
+        private bool _disposed;
+
+        public SharedVideoPlayer(string key)
+        {
+            _key = key;
+            _player = new SoftwareVlcPlayer(OnFrameReady);
+        }
+
+        public bool IsUnused => _views.Count == 0;
+
+        public long Time
+        {
+            get => _player.Time;
+            set => _player.Time = value;
+        }
+
+        public void Attach(VlcVideoView view)
+        {
+            if (!_views.Contains(view))
+                _views.Add(view);
+        }
+
+        public void Detach(VlcVideoView view)
+            => _views.Remove(view);
+
+        public void Apply(string source, bool isPlaybackActive, double volume)
+        {
+            if (_disposed)
+                return;
+
+            if (!string.Equals(source, _currentSource, StringComparison.Ordinal))
+            {
+                _currentSource = source;
+                Log($"[VLC] Shared player {_key} opening source");
+                _player.Open(source);
+            }
+
+            var isLiveStream = IsRtspUrl(source);
+            if (isPlaybackActive || isLiveStream)
+                _player.Play();
+            else
+                _player.Pause();
+
+            _player.Volume = (int)Math.Round(volume);
+        }
+
+        private void OnFrameReady(byte[] frame, int width, int height)
+        {
+            VlcVideoView[] targets;
+            lock (SharedPlayersLock)
+            {
+                targets = _views.ToArray();
+            }
+
+            foreach (var view in targets)
+                view.ReceiveFrame(frame, width, height);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            _player.Dispose();
+        }
+    }
 
     private sealed class SoftwareVlcPlayer : IDisposable
     {

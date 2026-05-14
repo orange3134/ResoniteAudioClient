@@ -109,7 +109,8 @@
                                             Background="Black"
                                             Height="160"
                                             ClipToBounds="True">
-                                        <v:VlcVideoView Source="{Binding PlaybackUrl}"
+                                        <v:VlcVideoView PlayerKey="{Binding Id}"
+                                                        Source="{Binding PlaybackUrl}"
                                                         IsPlaybackActive="{Binding IsPlaying}"
                                                         Position="{Binding Position}"
                                                         Volume="{Binding Volume}"
