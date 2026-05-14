@@ -25,7 +25,7 @@
                           IsVisible="{Binding HasViewingVideos}"
                           HorizontalScrollBarVisibility="Disabled"
                           VerticalScrollBarVisibility="Auto"
-                          MaxHeight="260"
+                          MaxHeight="346"
                           BorderBrush="{StaticResource BrushBgDark}"
                           BorderThickness="0,0,0,1">
                 <ItemsControl ItemsSource="{Binding ViewingVideos}" Margin="8,8,8,2">
@@ -36,7 +36,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:VideoPlayerItemViewModel">
-                            <Border Width="380"
+                            <Border Width="320"
                                     Background="{StaticResource BrushBgDark}"
                                     BorderBrush="{StaticResource BrushAccent}"
                                     BorderThickness="1"
@@ -45,16 +45,13 @@
                                     Margin="0,0,8,8">
                                 <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="7">
                                     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="4">
-                                        <StackPanel Grid.Column="0" Spacing="1">
-                                            <TextBlock Text="{Binding Title}"
-                                                       Foreground="{StaticResource BrushTextPrimary}"
-                                                       FontSize="13"
-                                                       FontWeight="SemiBold"
-                                                       TextTrimming="CharacterEllipsis" />
-                                            <TextBlock Text="{Binding PositionText}"
-                                                       Foreground="{StaticResource BrushTextMuted}"
-                                                       FontSize="11" />
-                                        </StackPanel>
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Title}"
+                                                   Foreground="{StaticResource BrushTextPrimary}"
+                                                   FontSize="13"
+                                                   FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" />
                                         <!-- Expand button -->
                                         <Button Grid.Column="1"
                                                 Command="{Binding ExpandCommand}"
@@ -107,7 +104,7 @@
 
                                     <Border Grid.Row="1"
                                             Background="Black"
-                                            Height="205"
+                                            Height="182"
                                             ClipToBounds="True">
                                         <v:VlcVideoView PlayerKey="{Binding Id}"
                                                         Source="{Binding PlaybackUrl}"
@@ -119,12 +116,14 @@
 
                                     <Grid Grid.Row="2"
                                           ColumnDefinitions="*,Auto"
-                                          ColumnSpacing="8">
+                                          ColumnSpacing="0"
+                                          MaxHeight="40">
                                         <Slider Grid.Column="0"
                                                 Minimum="0"
                                                 Maximum="{Binding SeekMaximum}"
                                                 Value="{Binding Position, Mode=TwoWay}"
-                                                IsEnabled="{Binding CanSeek}" />
+                                                IsEnabled="{Binding CanSeek}"
+                                                VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="1"
                                                    Text="{Binding PositionText}"
                                                    Foreground="{StaticResource BrushTextMuted}"
