@@ -37,7 +37,11 @@ public partial class VideoListViewModel : ObservableObject
         {
             if (!incomingIds.Contains(Videos[i].Id))
             {
-                ViewingVideos.Remove(Videos[i]);
+                var removed = Videos[i];
+                ViewingVideos.Remove(removed);
+                removed.IsViewing = false;
+                if (ExpandedVideo == removed)
+                    ExpandedVideo = null;
                 Videos.RemoveAt(i);
             }
         }

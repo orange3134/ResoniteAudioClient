@@ -143,16 +143,7 @@ public class VideoService
     private World? GetVideoWorld()
     {
         var focused = _engine.WorldManager.FocusedWorld;
-        if (IsUsableWorld(focused) && HasVideoProvider(focused))
-            return focused;
-
-        var worlds = new List<World>();
-        _engine.WorldManager.GetWorlds(worlds);
-
-        return worlds
-            .Where(IsUsableWorld)
-            .OrderByDescending(w => w == focused)
-            .FirstOrDefault(HasVideoProvider);
+        return IsUsableWorld(focused) ? focused : null;
     }
 
     private void LogDiagnosticsIfNeeded(World? selectedWorld, int videoCount)
@@ -188,9 +179,6 @@ public class VideoService
 
     private static bool IsUsableWorld(World? world)
         => world != null && world != Userspace.UserspaceWorld && world.State == World.WorldState.Running;
-
-    private static bool HasVideoProvider(World world)
-        => GetVideoPlayers(world).Count > 0;
 
     private List<VideoPlayerInfo> SnapshotVideos(World world)
     {
