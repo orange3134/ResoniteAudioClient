@@ -184,12 +184,13 @@ public class VlcVideoView : Control
             return;
         }
 
+        SharedVideoPlayer? playerToDispose = null;
         lock (SharedPlayersLock)
         {
             if (string.Equals(_registeredKey, key, StringComparison.Ordinal) && _sharedPlayer != null)
                 return;
 
-            UnregisterSharedPlayerCore();
+            playerToDispose = UnregisterSharedPlayerCore();
 
             if (!SharedPlayers.TryGetValue(key, out var sharedPlayer))
             {
@@ -201,30 +202,37 @@ public class VlcVideoView : Control
             _sharedPlayer = sharedPlayer;
             sharedPlayer.Attach(this);
         }
+
+        playerToDispose?.Dispose();
     }
 
     private void UnregisterSharedPlayer()
     {
+        SharedVideoPlayer? playerToDispose = null;
         lock (SharedPlayersLock)
         {
-            UnregisterSharedPlayerCore();
+            playerToDispose = UnregisterSharedPlayerCore();
         }
+
+        playerToDispose?.Dispose();
     }
 
-    private void UnregisterSharedPlayerCore()
+    private SharedVideoPlayer? UnregisterSharedPlayerCore()
     {
         if (_sharedPlayer == null || _registeredKey == null)
-            return;
+            return null;
 
+        SharedVideoPlayer? playerToDispose = null;
         _sharedPlayer.Detach(this);
         if (_sharedPlayer.IsUnused)
         {
             SharedPlayers.Remove(_registeredKey);
-            _sharedPlayer.Dispose();
+            playerToDispose = _sharedPlayer;
         }
 
         _sharedPlayer = null;
         _registeredKey = null;
+        return playerToDispose;
     }
 
     private string? GetEffectivePlayerKey()
@@ -383,6 +391,9 @@ public class VlcVideoView : Control
 
         private void OnFrameReady(byte[] frame, int width, int height)
         {
+            if (_disposed)
+                return;
+
             VlcVideoView[] targets;
             lock (SharedPlayersLock)
             {
