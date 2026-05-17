@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using AudioClient.GUI.Services;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -100,6 +102,7 @@ public class VlcVideoView : Control
     private int _frameHeight;
     private bool _frameUpdateQueued;
     private bool _isAttached;
+    private string? _playbackError;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -149,6 +152,22 @@ public class VlcVideoView : Control
         var bounds = new Rect(Bounds.Size);
         context.FillRectangle(Brushes.Black, bounds);
 
+        if (!string.IsNullOrWhiteSpace(_playbackError))
+        {
+            var text = new FormattedText(
+                _playbackError,
+                CultureInfo.CurrentCulture,
+                FlowDirection.LeftToRight,
+                new Typeface(FontFamily.Default, FontStyle.Normal, FontWeight.Normal),
+                12,
+                Brushes.LightGray);
+            var origin = new Point(
+                Math.Max(8, (bounds.Width - text.Width) / 2),
+                Math.Max(8, (bounds.Height - text.Height) / 2));
+            context.DrawText(text, origin);
+            return;
+        }
+
         if (_bitmap == null || _frameWidth <= 0 || _frameHeight <= 0 || bounds.Width <= 0 || bounds.Height <= 0)
             return;
 
@@ -194,12 +213,23 @@ public class VlcVideoView : Control
 
             if (!SharedPlayers.TryGetValue(key, out var sharedPlayer))
             {
-                sharedPlayer = new SharedVideoPlayer(key);
+                try
+                {
+                    sharedPlayer = new SharedVideoPlayer(key);
+                }
+                catch (Exception ex) when (ex is FileNotFoundException or DllNotFoundException or BadImageFormatException or InvalidOperationException)
+                {
+                    SetPlaybackError("Video playback unavailable: Resonite libVLC was not found.");
+                    Log($"[VLC] Failed to initialize shared player for {key}: {ex.GetType().Name}: {ex.Message}");
+                    return;
+                }
+
                 SharedPlayers.Add(key, sharedPlayer);
             }
 
             _registeredKey = key;
             _sharedPlayer = sharedPlayer;
+            SetPlaybackError(null);
             sharedPlayer.Attach(this);
         }
 
@@ -243,7 +273,17 @@ public class VlcVideoView : Control
         if (!_isAttached)
             return;
 
+        SetPlaybackError(null);
         OnFrameReady(frame, width, height);
+    }
+
+    private void SetPlaybackError(string? message)
+    {
+        if (string.Equals(_playbackError, message, StringComparison.Ordinal))
+            return;
+
+        _playbackError = message;
+        InvalidateVisual();
     }
 
     private void ApplyState()
@@ -693,27 +733,38 @@ public class VlcVideoView : Control
             var parent = Directory.GetParent(appDir)?.FullName;
             var grandParent = parent == null ? null : Directory.GetParent(parent)?.FullName;
 
+            AddCandidate(RuntimeBootstrap.CurrentEngineDir);
+            AddCandidate(RuntimeBootstrap.SavedEngineDir);
+            AddCandidate(RuntimeBootstrap.SuggestedEngineDir);
             AddCandidate(appDir);
             if (parent != null) AddCandidate(parent);
             if (grandParent != null) AddCandidate(grandParent);
             AddCandidate(@"C:\Program Files (x86)\Steam\steamapps\common\Resonite");
 
-            foreach (var candidate in candidates)
+            foreach (var candidate in candidates.Distinct(GetPathComparer()))
             {
                 if (File.Exists(Path.Combine(candidate, "libvlc.dll")) &&
                     Directory.Exists(Path.Combine(candidate, "plugins")))
                 {
+                    Log($"[VLC] Using libVLC from: {candidate}");
                     return candidate;
                 }
             }
 
+            Log($"[VLC] Could not find libVLC. Checked: {string.Join("; ", candidates.Distinct(GetPathComparer()))}");
             return null;
 
-            void AddCandidate(string baseDir)
+            void AddCandidate(string? baseDir)
             {
+                if (string.IsNullOrWhiteSpace(baseDir))
+                    return;
+
                 candidates.Add(Path.Combine(baseDir, "Renderer", "Renderite.Renderer_Data", "Plugins", "x86_64"));
             }
         }
+
+        private static StringComparer GetPathComparer()
+            => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
 
         public static string GetLastError()
         {
