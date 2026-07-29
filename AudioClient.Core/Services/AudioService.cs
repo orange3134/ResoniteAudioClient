@@ -41,7 +41,7 @@ public class AudioService
             input.NewRawSamples += OnMicSamples;
     }
 
-    private void OnMicSamples(Span<StereoSample> buffer)
+    private void OnMicSamples(ReadOnlySpan<StereoSample> buffer)
     {
         float peak = 0f;
         for (int i = 0; i < buffer.Length; i++)
@@ -69,7 +69,7 @@ public class AudioService
         int current = _engine.AudioSystem.DefaultAudioInputIndex;
         result.Add(new DeviceInfo(0, "System Default", current < 0, true));
         for (int i = 0; i < inputs.Count; i++)
-            result.Add(new DeviceInfo(i + 1, inputs[i].Name, i == current, inputs[i].IsConnected));
+            result.Add(new DeviceInfo(i + 1, inputs[i].Name.ToString(), i == current, inputs[i].IsConnected));
         return result;
     }
 
@@ -81,7 +81,7 @@ public class AudioService
         int current = _engine.AudioSystem.DefaultAudioOutputIndex;
         result.Add(new DeviceInfo(0, "System Default", current < 0, true));
         for (int i = 0; i < outputs.Count; i++)
-            result.Add(new DeviceInfo(i + 1, outputs[i].Name, i == current, outputs[i].IsConnected));
+            result.Add(new DeviceInfo(i + 1, outputs[i].Name.ToString(), i == current, outputs[i].IsConnected));
         return result;
     }
 
