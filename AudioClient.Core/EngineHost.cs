@@ -77,6 +77,7 @@ public class EngineHost : IDisposable
 
         await engine.Initialize(engineDir, useRenderer: false, options, systemInfo, initProgress);
         Engine.Config.DisableIntroTutorial = true;
+        engine.InitializeUpdateLoop();
         Userspace.SetupUserspace(engine);
 
         return new EngineHost(engine);
@@ -106,8 +107,8 @@ public class EngineHost : IDisposable
     private void UpdateLoop()
     {
         while (!_shutdownRequested && !_engine.ShutdownRequested)
-        {
-            _engine.RunUpdateLoop();
+            {
+                _engine.RunUpdateLoop();
             Thread.Sleep(10);
         }
     }
